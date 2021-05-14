@@ -1,0 +1,28 @@
+{
+  "name": "random-di-workspaces",
+  "version": "0.0.0",
+  "description": "Random di workspace",
+  "main": "index.js",
+  "scripts": {
+    "test": "jest"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/botflux/random-di.git"
+  },
+  "keywords": [
+    "di"
+  ],
+  "author": "Victor Mendele <victor.mendele68@gmail.com>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/botflux/random-di/issues"
+  },
+  "homepage": "https://github.com/botflux/random-di#readme",
+  "workspaces": [
+    "packages/Container"
+  ],
+  "devDependencies": {
+    "@types/jest": "^26.0.23"
+  }
+}
