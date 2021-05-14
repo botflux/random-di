@@ -10,9 +10,7 @@ script:
   - npm run build
   - npm run test
   - npm run docs:prod
-  - npm run test:coverage
-  - ls -la
-  - ls -la packages/container
+  - npm run test:coverage:coveralls
 deploy:
   provider: pages
   skip_cleanup: true

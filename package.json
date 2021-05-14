@@ -10,8 +10,7 @@
   "scripts": {
     "test": "npm run test --ws",
     "test:watch": "npm run test:watch --ws",
-    "test:coverage": "npm exec -ws -- jest --coverage --coverageReporters=text-lcov",
-    "test:coverage:publish": "cat coverage/lcov.info | coveralls",
+    "test:coverage:coveralls": "jest --coverage --coverageReporters=text-lcov | coveralls",
     "build": "npm run build --ws",
     "docs:dev": "vuepress dev docs",
     "docs:prod": "vuepress build docs"
@@ -31,6 +30,7 @@
   "devDependencies": {
     "@types/jest": "^26.0.23",
     "coveralls": "^3.1.0",
+    "jest": "^26.6.3",
     "vuepress": "^1.8.2",
     "vuepress-plugin-code-copy": "^1.0.6"
   }
