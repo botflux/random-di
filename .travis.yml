@@ -6,6 +6,7 @@ branches:
     - main
 install:
   - npm install
+  - npm exec -ws -- npm install
 script:
   - npm run build
   - npm run test
