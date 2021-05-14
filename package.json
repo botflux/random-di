@@ -2,13 +2,15 @@
   "name": "random-di-workspaces",
   "version": "0.0.0",
   "description": "Random di workspace",
-  "main": "index.js",
-  "scripts": {
-    "test": "jest"
-  },
+  "private": true,
   "repository": {
     "type": "git",
     "url": "git+https://github.com/botflux/random-di.git"
+  },
+  "scripts": {
+    "test": "npm run test --ws",
+    "test:watch": "npm run test:watch --ws",
+    "build": "npm run build --ws"
   },
   "keywords": [
     "di"
@@ -20,7 +22,7 @@
   },
   "homepage": "https://github.com/botflux/random-di#readme",
   "workspaces": [
-    "packages/Container"
+    "packages/*"
   ],
   "devDependencies": {
     "@types/jest": "^26.0.23"

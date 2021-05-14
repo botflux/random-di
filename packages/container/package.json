@@ -4,7 +4,9 @@
   "description": "A random dependency injection container",
   "main": "dist/index.js",
   "scripts": {
-    "test": "jest"
+    "test": "jest",
+    "build": "tsc",
+    "echo": "ls"
   },
   "repository": {
     "type": "git",
