@@ -1,7 +1,7 @@
 module.exports = {
-    title: "Dependency injection container",
+    title: "Random DI",
     description: "Manage your application dependencies",
-    base: "/dependency-injection-container/",
+    base: "/random-di/",
     themeConfig: {
         nav: [
             { text: "Home", link: "/" },
