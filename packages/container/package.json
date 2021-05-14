@@ -1,6 +1,6 @@
 {
   "name": "@random-di/container",
-  "version": "0.0.0",
+  "version": "0.0.1",
   "description": "A random dependency injection container",
   "main": "dist/index.js",
   "scripts": {
