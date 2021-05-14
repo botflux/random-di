@@ -14,7 +14,7 @@ npm i --save @random-di/container
 ```
 
 ```shell
-yarn add @botflx/dependency-injection-container
+yarn add @random-di/container
 ```
 
 ## Docs
