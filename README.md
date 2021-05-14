@@ -19,4 +19,4 @@ yarn add @botflx/dependency-injection-container
 
 ## Docs
 
-[https://botflux.github.io/random-ci](https://botflux.github.io/random-ci)
+[https://botflux.github.io/random-di](https://botflux.github.io/random-di)
