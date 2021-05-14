@@ -11,7 +11,7 @@ script:
   - npm run test
   - npm run docs:prod
   - npm run test:coverage
-  - npm run test:coverage:publish
+  - ls -la
 deploy:
   provider: pages
   skip_cleanup: true
