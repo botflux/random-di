@@ -10,7 +10,8 @@
   "scripts": {
     "test": "npm run test --ws",
     "test:watch": "npm run test:watch --ws",
-    "test:coverage:coveralls": "npm exec -ws -- jest --coverage --coverageReporters=text-lcov && cat coverage/lcov.info | coveralls",
+    "test:coverage": "npm exec -ws -- jest --coverage --coverageReporters=text-lcov",
+    "test:coverage:publish": "cat coverage/lcov.info | coveralls",
     "build": "npm run build --ws",
     "docs:dev": "vuepress dev docs",
     "docs:prod": "vuepress build docs"

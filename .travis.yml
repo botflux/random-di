@@ -10,7 +10,8 @@ script:
   - npm run build
   - npm run test
   - npm run docs:prod
-  - npm run test:coverage:coveralls
+  - npm run test:coverage
+  - npm run test:coverage:publish
 deploy:
   provider: pages
   skip_cleanup: true
