@@ -1,7 +1,7 @@
 ---
 home: true
 heroImage: null
-heroText: Dependency injection container
+heroText: Random DI
 tagline: Manage your application dependencies
 actionText: Get Started →
 actionLink: /guide/

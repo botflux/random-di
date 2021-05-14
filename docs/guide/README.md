@@ -1,14 +1,11 @@
 # Getting started
 
-> This documentation only cover the `v2` of this package which is
-> in beta. `v2` has a lot of breaking changes.
-
-[![Build Status](https://travis-ci.org/botflux/dependency-injection-container.svg?branch=master)](https://travis-ci.org/botflux/dependency-injection-container)
-[![npm version](https://img.shields.io/npm/v/@botflx%2Fdependency-injection-container.svg)](https://npmjs.org/package/@botflx/dependency-injection-container)
-[![Coverage Status](https://coveralls.io/repos/github/botflux/dependency-injection-container/badge.svg?branch=master)](https://coveralls.io/github/botflux/dependency-injection-container?branch=master)
-[![Lightweight](https://img.shields.io/bundlephobia/minzip/@botflx/dependency-injection-container)](https://bundlephobia.com/result?p=@botflx/dependency-injection-container)
-[![GitHub issues](https://img.shields.io/github/issues/botflux/dependency-injection-container.svg)](https://GitHub.com/botflux/dependency-injection-container/issues/)
-[![GitHub license](https://img.shields.io/github/license/botflux/dependency-injection-container.svg)](https://github.com/botflux/dependency-injection-container/blob/master/LICENSE)
+[![Build Status](https://travis-ci.com/botflux/random-di.svg?branch=main)](https://travis-ci.com/botflux/random-di)
+[![npm version](https://img.shields.io/npm/v/@random-di%2Fcontainer.svg)](https://npmjs.org/package/@botflx/dependency-injection-container)
+[![Coverage Status](https://coveralls.io/repos/github/botflux/random-di/badge.svg?branch=main)](https://coveralls.io/github/botflux/dependency-injection-container?branch=master)
+[![Lightweight](https://img.shields.io/bundlephobia/minzip/@random-di/random-di)](https://bundlephobia.com/result?p=@random-di/container)
+[![GitHub issues](https://img.shields.io/github/issues/botflux/random-di.svg)](https://GitHub.com/botflux/random-di/issues/)
+[![GitHub license](https://img.shields.io/github/license/botflux/random-di.svg)](https://github.com/botflux/random-di/blob/master/LICENSE)
 
 > In software engineering, dependency injection is a technique in which an object receives other objects that it depends on. These other objects are called dependencies. [Source Wikipedia](https://en.wikipedia.org/wiki/Dependency_injection)
 
@@ -103,7 +100,7 @@ class Car {
 
 ```typescript
 // bootstrap.ts
-import {createContainerBuilder, LifeCycle} from '@botflx/dependency-injection-container'
+import {createContainerBuilder, LifeCycle} from '@random-di/container'
 import { Engine, Car } from './classes'
 
 // Add your dependencies to the container as factory functions

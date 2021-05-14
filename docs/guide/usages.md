@@ -6,7 +6,7 @@ In the following example, we declare two services as classes: `MyService` and `O
 Containers are built by using a container builder.
 
 ```typescript
-import {createContainerBuilder, LifeCycle, SyncServiceProviderInterface} from '@botlfx/dependency-injection-container'
+import {createContainerBuilder, LifeCycle, SyncServiceProviderInterface} from '@random-ci/container'
 
 class MyService {
 }
@@ -42,7 +42,7 @@ Since `OtherService` and `MyService` are classes you can add them to the contain
 `addConstructor`.
 
 ```typescript
-import {createContainerBuilder, LifeCycle, SyncServiceProviderInterface} from '@botlfx/dependency-injection-container'
+import {createContainerBuilder, LifeCycle, SyncServiceProviderInterface} from '@random-ci/container'
 
 class OtherService {}
 
@@ -77,7 +77,7 @@ In the previous example we used `string` to specify our service keys. You can us
 specify your keys.
 
 ```typescript
-// The ServiceKey type as defined in the @botlfx/dependency-injection-container
+// The ServiceKey type as defined in the @random-ci/container
 type ServiceKey = string | number | Symbol
 
 // You can use symbols
@@ -114,7 +114,7 @@ There are two life cycles available:
 - `LifeCycle.Transient` gives you a new instance of the service every time you call `get` or `getAsync`.
 
 ```typescript
-import {createContainerBuilder, LifeCycle} from '@botflx/dependency-injection-container'
+import {createContainerBuilder, LifeCycle} from '@random-ci/container'
 
 const builder = createContainerBuilder()
 
@@ -147,7 +147,7 @@ class DbConnection {
 ```
 
 ```typescript
-import {createContainerBuilder, LifeCycle, AsyncServiceProviderInterface} from '@botflx/dependency-injection-container'
+import {createContainerBuilder, LifeCycle, AsyncServiceProviderInterface} from '@random-ci/container'
 
 const builder = createContainerBuilder()
 
@@ -215,7 +215,7 @@ To resolve this issue, you can use service loaders. A service loader is just
 a function taking as first parameter a container builder and returning void.
 
 ```typescript
-import {ServiceLoaderInterface, LifeCycle, createContainerBuilder} from '@botflx/dependency-injection-container'
+import {ServiceLoaderInterface, LifeCycle, createContainerBuilder} from '@random-ci/container'
 
 // Declare a service loader
 const myLoader: ServiceLoaderInterface = builder => {
@@ -246,7 +246,7 @@ import {
     Service,
     Inject,
     LifeCycle
-} from '@botflx/dependency-injection-container'
+} from '@random-ci/container'
 
 @Service("my service", LifeCycle.Singleton)
 class MyService {
@@ -272,7 +272,7 @@ Sometimes you want your container so be used only for a given http request.
 You can create those kinds of container as following:
 
 ```typescript
-import {createContainerBuilder, createScopedContainerBuilder, LifeCycle} from '@botflx/dependency-injection-container'
+import {createContainerBuilder, createScopedContainerBuilder, LifeCycle} from '@random-ci/container'
 
 // Create a global container
 const globalContainer = createContainerBuilder()
