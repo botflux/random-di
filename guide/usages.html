@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en-US">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Usages | Dependency injection container</title>
+    <meta name="generator" content="VuePress 1.8.2">
+    
+    <meta name="description" content="Manage your application dependencies">
+    
+    <link rel="preload" href="/dependency-injection-container/assets/css/0.styles.04f67088.css" as="style"><link rel="preload" href="/dependency-injection-container/assets/js/app.e4c39402.js" as="script"><link rel="preload" href="/dependency-injection-container/assets/js/2.8fd7e06d.js" as="script"><link rel="preload" href="/dependency-injection-container/assets/js/10.3055b94f.js" as="script"><link rel="prefetch" href="/dependency-injection-container/assets/js/3.8a60d379.js"><link rel="prefetch" href="/dependency-injection-container/assets/js/4.da128890.js"><link rel="prefetch" href="/dependency-injection-container/assets/js/5.4c54e21c.js"><link rel="prefetch" href="/dependency-injection-container/assets/js/6.3adfd7a9.js"><link rel="prefetch" href="/dependency-injection-container/assets/js/7.30385358.js"><link rel="prefetch" href="/dependency-injection-container/assets/js/8.4f5c770d.js"><link rel="prefetch" href="/dependency-injection-container/assets/js/9.96e76cca.js">
+    <link rel="stylesheet" href="/dependency-injection-container/assets/css/0.styles.04f67088.css">
+  </head>
+  <body>
+    <div id="app" data-server-rendered="true"><div class="theme-container"><header class="navbar"><div class="sidebar-button"><svg xmlns="http://www.w3.org/2000/svg" aria-hidden="true" role="img" viewBox="0 0 448 512" class="icon"><path fill="currentColor" d="M436 124H12c-6.627 0-12-5.373-12-12V80c0-6.627 5.373-12 12-12h424c6.627 0 12 5.373 12 12v32c0 6.627-5.373 12-12 12zm0 160H12c-6.627 0-12-5.373-12-12v-32c0-6.627 5.373-12 12-12h424c6.627 0 12 5.373 12 12v32c0 6.627-5.373 12-12 12zm0 160H12c-6.627 0-12-5.373-12-12v-32c0-6.627 5.373-12 12-12h424c6.627 0 12 5.373 12 12v32c0 6.627-5.373 12-12 12z"></path></svg></div> <a href="/dependency-injection-container/" class="home-link router-link-active"><!----> <span class="site-name">Dependency injection container</span></a> <div class="links"><div class="search-box"><input aria-label="Search" autocomplete="off" spellcheck="false" value=""> <!----></div> <nav class="nav-links can-hide"><div class="nav-item"><a href="/dependency-injection-container/" class="nav-link">
+  Home
+</a></div><div class="nav-item"><a href="/dependency-injection-container/guide/installation.html" class="nav-link">
+  Installation
+</a></div><div class="nav-item"><a href="/dependency-injection-container/guide/" class="nav-link router-link-active">
+  Guide
+</a></div><div class="nav-item"><a href="https://github.com/botflux/dependency-injection-container" target="_blank" rel="noopener noreferrer" class="nav-link external">
+  Github
+  <span><svg xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false" x="0px" y="0px" viewBox="0 0 100 100" width="15" height="15" class="icon outbound"><path fill="currentColor" d="M18.8,85.1h56l0,0c2.2,0,4-1.8,4-4v-32h-8v28h-48v-48h28v-8h-32l0,0c-2.2,0-4,1.8-4,4v56C14.8,83.3,16.6,85.1,18.8,85.1z"></path> <polygon fill="currentColor" points="45.7,48.7 51.3,54.3 77.2,28.5 77.2,37.2 85.2,37.2 85.2,14.9 62.8,14.9 62.8,22.9 71.5,22.9"></polygon></svg> <span class="sr-only">(opens new window)</span></span></a></div> <!----></nav></div></header> <div class="sidebar-mask"></div> <aside class="sidebar"><nav class="nav-links"><div class="nav-item"><a href="/dependency-injection-container/" class="nav-link">
+  Home
+</a></div><div class="nav-item"><a href="/dependency-injection-container/guide/installation.html" class="nav-link">
+  Installation
+</a></div><div class="nav-item"><a href="/dependency-injection-container/guide/" class="nav-link router-link-active">
+  Guide
+</a></div><div class="nav-item"><a href="https://github.com/botflux/dependency-injection-container" target="_blank" rel="noopener noreferrer" class="nav-link external">
+  Github
+  <span><svg xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false" x="0px" y="0px" viewBox="0 0 100 100" width="15" height="15" class="icon outbound"><path fill="currentColor" d="M18.8,85.1h56l0,0c2.2,0,4-1.8,4-4v-32h-8v28h-48v-48h28v-8h-32l0,0c-2.2,0-4,1.8-4,4v56C14.8,83.3,16.6,85.1,18.8,85.1z"></path> <polygon fill="currentColor" points="45.7,48.7 51.3,54.3 77.2,28.5 77.2,37.2 85.2,37.2 85.2,14.9 62.8,14.9 62.8,22.9 71.5,22.9"></polygon></svg> <span class="sr-only">(opens new window)</span></span></a></div> <!----></nav>  <ul class="sidebar-links"><li><section class="sidebar-group depth-0"><a href="/dependency-injection-container/guide/" class="sidebar-heading clickable router-link-active open"><span>Guide</span> <!----></a> <ul class="sidebar-links sidebar-group-items"><li><a href="/dependency-injection-container/guide/" aria-current="page" class="sidebar-link">Getting started</a><ul class="sidebar-sub-headers"><li class="sidebar-sub-header"><a href="/dependency-injection-container/guide/#simple-example-of-dependency-injection" class="sidebar-link">Simple example of dependency injection</a></li><li class="sidebar-sub-header"><a href="/dependency-injection-container/guide/#why-use-a-package-to-do-dependency-injection" class="sidebar-link">Why use a package to do dependency injection ?</a></li><li class="sidebar-sub-header"><a href="/dependency-injection-container/guide/#npm-dependencies" class="sidebar-link">Npm dependencies</a></li></ul></li><li><a href="/dependency-injection-container/guide/installation.html" class="sidebar-link">Installation</a><ul class="sidebar-sub-headers"><li class="sidebar-sub-header"><a href="/dependency-injection-container/guide/installation.html#moving-to-monorepo" class="sidebar-link">Moving to monorepo</a></li></ul></li><li><a href="/dependency-injection-container/guide/usages.html" aria-current="page" class="active sidebar-link">Usages</a><ul class="sidebar-sub-headers"><li class="sidebar-sub-header"><a href="/dependency-injection-container/guide/usages.html#adding-synchronous-dependencies" class="sidebar-link">Adding synchronous dependencies</a></li><li class="sidebar-sub-header"><a href="/dependency-injection-container/guide/usages.html#using-constructors" class="sidebar-link">Using constructors</a></li><li class="sidebar-sub-header"><a href="/dependency-injection-container/guide/usages.html#service-keys" class="sidebar-link">Service keys</a></li><li class="sidebar-sub-header"><a href="/dependency-injection-container/guide/usages.html#service-lifecycle" class="sidebar-link">Service lifecycle</a></li><li class="sidebar-sub-header"><a href="/dependency-injection-container/guide/usages.html#adding-asynchronous-dependencies" class="sidebar-link">Adding asynchronous dependencies</a></li><li class="sidebar-sub-header"><a href="/dependency-injection-container/guide/usages.html#service-providers" class="sidebar-link">Service providers</a></li><li class="sidebar-sub-header"><a href="/dependency-injection-container/guide/usages.html#service-loaders" class="sidebar-link">Service loaders</a></li><li class="sidebar-sub-header"><a href="/dependency-injection-container/guide/usages.html#decorators" class="sidebar-link">Decorators</a></li><li class="sidebar-sub-header"><a href="/dependency-injection-container/guide/usages.html#scoped-container" class="sidebar-link">Scoped container</a></li></ul></li></ul></section></li></ul> </aside> <main class="page"> <div class="theme-default-content content__default"><h1 id="usages"><a href="#usages" class="header-anchor">#</a> Usages</h1> <h2 id="adding-synchronous-dependencies"><a href="#adding-synchronous-dependencies" class="header-anchor">#</a> Adding synchronous dependencies</h2> <p>In the following example, we declare two services as classes: <code>MyService</code> and <code>OtherService</code>.
+Containers are built by using a container builder.</p> <div class="language-typescript extra-class"><pre class="language-typescript"><code><span class="token keyword">import</span> <span class="token punctuation">{</span>createContainerBuilder<span class="token punctuation">,</span> LifeCycle<span class="token punctuation">,</span> SyncServiceProviderInterface<span class="token punctuation">}</span> <span class="token keyword">from</span> <span class="token string">'@botlfx/dependency-injection-container'</span>
+
+<span class="token keyword">class</span> <span class="token class-name">MyService</span> <span class="token punctuation">{</span>
+<span class="token punctuation">}</span>
+
+<span class="token keyword">class</span> <span class="token class-name">OtherService</span> <span class="token punctuation">{</span>
+    <span class="token keyword">constructor</span><span class="token punctuation">(</span><span class="token keyword">private</span> myService<span class="token operator">:</span> MyService<span class="token punctuation">)</span> <span class="token punctuation">{</span>
+    <span class="token punctuation">}</span>
+<span class="token punctuation">}</span>
+
+<span class="token comment">// Create a container builder</span>
+<span class="token keyword">const</span> containerBuilder <span class="token operator">=</span> <span class="token function">createContainerBuilder</span><span class="token punctuation">(</span><span class="token punctuation">)</span>
+
+<span class="token comment">// Add sync factories to the container</span>
+containerBuilder<span class="token punctuation">.</span><span class="token function">addFactory</span><span class="token punctuation">(</span><span class="token string">&quot;other-service&quot;</span><span class="token punctuation">,</span> OtherService<span class="token punctuation">,</span> LifeCycle<span class="token punctuation">.</span>Singleton<span class="token punctuation">)</span>
+
+containerBuilder<span class="token punctuation">.</span><span class="token function">addFactory</span><span class="token punctuation">(</span>
+    <span class="token string">&quot;my-service&quot;</span><span class="token punctuation">,</span>
+    <span class="token punctuation">(</span>provider<span class="token operator">:</span> SyncServiceProviderInterface<span class="token punctuation">)</span> <span class="token operator">=&gt;</span> <span class="token keyword">new</span> <span class="token class-name">MyService</span><span class="token punctuation">(</span>provider<span class="token punctuation">.</span><span class="token keyword">get</span><span class="token operator">&lt;</span>OtherService<span class="token operator">&gt;</span><span class="token punctuation">(</span><span class="token string">'other-service'</span><span class="token punctuation">)</span><span class="token punctuation">)</span><span class="token punctuation">,</span>
+    LifeCycle<span class="token punctuation">.</span>Singleton
+<span class="token punctuation">)</span>
+
+<span class="token comment">// Build the container</span>
+<span class="token keyword">const</span> container <span class="token operator">=</span> containerBuilder<span class="token punctuation">.</span><span class="token function">build</span><span class="token punctuation">(</span><span class="token punctuation">)</span>
+
+<span class="token comment">// Use the container</span>
+<span class="token keyword">const</span> myService <span class="token operator">=</span> container<span class="token punctuation">.</span><span class="token keyword">get</span><span class="token operator">&lt;</span>MyService<span class="token operator">&gt;</span><span class="token punctuation">(</span><span class="token string">&quot;my-service&quot;</span><span class="token punctuation">)</span>
+<span class="token keyword">const</span> anotherService <span class="token operator">=</span> container<span class="token punctuation">.</span><span class="token keyword">get</span><span class="token operator">&lt;</span>OtherService<span class="token operator">&gt;</span><span class="token punctuation">(</span><span class="token string">&quot;other-service&quot;</span><span class="token punctuation">)</span>
+</code></pre></div><h2 id="using-constructors"><a href="#using-constructors" class="header-anchor">#</a> Using constructors</h2> <p>Since <code>OtherService</code> and <code>MyService</code> are classes you can add them to the container with the method
+<code>addConstructor</code>.</p> <div class="language-typescript extra-class"><pre class="language-typescript"><code><span class="token keyword">import</span> <span class="token punctuation">{</span>createContainerBuilder<span class="token punctuation">,</span> LifeCycle<span class="token punctuation">,</span> SyncServiceProviderInterface<span class="token punctuation">}</span> <span class="token keyword">from</span> <span class="token string">'@botlfx/dependency-injection-container'</span>
+
+<span class="token keyword">class</span> <span class="token class-name">OtherService</span> <span class="token punctuation">{</span><span class="token punctuation">}</span>
+
+<span class="token keyword">class</span> <span class="token class-name">MyService</span> <span class="token punctuation">{</span>
+    <span class="token keyword">private</span> <span class="token keyword">readonly</span> otherService<span class="token operator">:</span> OtherService
+    
+    <span class="token keyword">constructor</span><span class="token punctuation">(</span>provider<span class="token operator">:</span> SyncServiceProviderInterface<span class="token punctuation">)</span> <span class="token punctuation">{</span>
+        <span class="token keyword">this</span><span class="token punctuation">.</span>otherService <span class="token operator">=</span> provider<span class="token punctuation">.</span><span class="token keyword">get</span><span class="token operator">&lt;</span>OtherService<span class="token operator">&gt;</span><span class="token punctuation">(</span><span class="token string">&quot;other-service&quot;</span><span class="token punctuation">)</span>
+    <span class="token punctuation">}</span>
+<span class="token punctuation">}</span>
+
+<span class="token comment">// Create a container builder</span>
+<span class="token keyword">const</span> containerBuilder <span class="token operator">=</span> <span class="token function">createContainerBuilder</span><span class="token punctuation">(</span><span class="token punctuation">)</span>
+
+<span class="token comment">// Add a sync constructor</span>
+containerBuilder<span class="token punctuation">.</span><span class="token function">addConstructor</span><span class="token punctuation">(</span><span class="token string">&quot;other-service&quot;</span><span class="token punctuation">,</span> OtherService<span class="token punctuation">,</span> LifeCycle<span class="token punctuation">.</span>Singleton<span class="token punctuation">)</span>
+
+<span class="token comment">// We inject MyService as a constructor instead of a factory.</span>
+<span class="token comment">// The constructor will get the provider as first paramter.</span>
+containerBuilder<span class="token punctuation">.</span><span class="token function">addConstructor</span><span class="token punctuation">(</span>
+    <span class="token string">&quot;my-service&quot;</span><span class="token punctuation">,</span> 
+    MyService<span class="token punctuation">,</span> 
+    LifeCycle<span class="token punctuation">.</span>Singleton
+<span class="token punctuation">)</span>
+</code></pre></div><blockquote><p>Note: Under the hood, <code>addConstructor</code> will make a call to <code>addFactory</code> by creating a simple factory like this <code>provider =&gt; new MyService(provider)</code></p></blockquote> <h2 id="service-keys"><a href="#service-keys" class="header-anchor">#</a> Service keys</h2> <p>In the previous example we used <code>string</code> to specify our service keys. You can use other types to
+specify your keys.</p> <div class="language-typescript extra-class"><pre class="language-typescript"><code><span class="token comment">// The ServiceKey type as defined in the @botlfx/dependency-injection-container</span>
+<span class="token keyword">type</span> <span class="token class-name">ServiceKey</span> <span class="token operator">=</span> <span class="token builtin">string</span> <span class="token operator">|</span> <span class="token builtin">number</span> <span class="token operator">|</span> Symbol
+
+<span class="token comment">// You can use symbols</span>
+<span class="token keyword">const</span> k1<span class="token operator">:</span> ServiceKey <span class="token operator">=</span> <span class="token function">Symbol</span><span class="token punctuation">(</span><span class="token string">&quot;my service&quot;</span><span class="token punctuation">)</span>
+
+<span class="token comment">// You can use strings</span>
+<span class="token keyword">const</span> k2<span class="token operator">:</span> ServiceKey <span class="token operator">=</span> <span class="token string">&quot;my service&quot;</span>
+
+<span class="token comment">// You can use numbers</span>
+<span class="token keyword">const</span> k3<span class="token operator">:</span> ServiceKey <span class="token operator">=</span> <span class="token number">2</span>
+
+<span class="token comment">// You can use an enum since it is represented as a number</span>
+<span class="token keyword">enum</span> ServiceKeys1 <span class="token punctuation">{</span>
+    MyService
+<span class="token punctuation">}</span>
+
+<span class="token keyword">const</span> k4<span class="token operator">:</span> ServiceKey <span class="token operator">=</span> ServiceKeys1<span class="token punctuation">.</span>MyService
+
+<span class="token comment">// Same with &quot;strings&quot; enums.</span>
+<span class="token keyword">enum</span> ServiceKeys2 <span class="token punctuation">{</span>
+    MyService <span class="token operator">=</span> <span class="token string">&quot;my service&quot;</span>
+<span class="token punctuation">}</span>
+
+<span class="token keyword">const</span> k5<span class="token operator">:</span> ServiceKey <span class="token operator">=</span> ServiceKeys2<span class="token punctuation">.</span>MyService
+</code></pre></div><h2 id="service-lifecycle"><a href="#service-lifecycle" class="header-anchor">#</a> Service lifecycle</h2> <p>In previous examples we add our services as singleton with <code>LifeCycle.Singleton</code>.
+<code>LifeCycle</code> is an enum that help us specify our services' life cycles.</p> <p>There are two life cycles available:</p> <ul><li><code>LifeCycle.Singleton</code> only one instance of the service will be created no matter how many times you call <code>get</code> or <code>getAsync</code>.</li> <li><code>LifeCycle.Transient</code> gives you a new instance of the service every time you call <code>get</code> or <code>getAsync</code>.</li></ul> <div class="language-typescript extra-class"><pre class="language-typescript"><code><span class="token keyword">import</span> <span class="token punctuation">{</span>createContainerBuilder<span class="token punctuation">,</span> LifeCycle<span class="token punctuation">}</span> <span class="token keyword">from</span> <span class="token string">'@botflx/dependency-injection-container'</span>
+
+<span class="token keyword">const</span> builder <span class="token operator">=</span> <span class="token function">createContainerBuilder</span><span class="token punctuation">(</span><span class="token punctuation">)</span>
+
+builder<span class="token punctuation">.</span><span class="token function">addConstructor</span><span class="token punctuation">(</span><span class="token string">'my-service'</span><span class="token punctuation">,</span> MyService<span class="token punctuation">,</span> LifeCycle<span class="token punctuation">.</span>Singleton<span class="token punctuation">)</span>
+builder<span class="token punctuation">.</span><span class="token function">addConstructor</span><span class="token punctuation">(</span><span class="token string">'another-service'</span><span class="token punctuation">,</span> AnotherService<span class="token punctuation">,</span> LifeCycle<span class="token punctuation">.</span>Transient<span class="token punctuation">)</span>
+
+<span class="token keyword">const</span> container <span class="token operator">=</span> builder<span class="token punctuation">.</span><span class="token function">build</span><span class="token punctuation">(</span><span class="token punctuation">)</span>
+
+<span class="token function">expect</span><span class="token punctuation">(</span>container<span class="token punctuation">.</span><span class="token keyword">get</span><span class="token punctuation">(</span><span class="token string">'my-service'</span><span class="token punctuation">)</span><span class="token punctuation">)</span><span class="token punctuation">.</span><span class="token function">toBe</span><span class="token punctuation">(</span>container<span class="token punctuation">.</span><span class="token keyword">get</span><span class="token punctuation">(</span><span class="token string">'my-service'</span><span class="token punctuation">)</span><span class="token punctuation">)</span>
+<span class="token function">expect</span><span class="token punctuation">(</span>container<span class="token punctuation">.</span><span class="token keyword">get</span><span class="token punctuation">(</span><span class="token string">'another-service'</span><span class="token punctuation">)</span><span class="token punctuation">)</span><span class="token punctuation">.</span>not<span class="token punctuation">.</span><span class="token function">toBe</span><span class="token punctuation">(</span>container<span class="token punctuation">.</span><span class="token keyword">get</span><span class="token punctuation">(</span><span class="token string">'another-service'</span><span class="token punctuation">)</span><span class="token punctuation">)</span>
+</code></pre></div><h2 id="adding-asynchronous-dependencies"><a href="#adding-asynchronous-dependencies" class="header-anchor">#</a> Adding asynchronous dependencies</h2> <p>You can also inject dependencies using async factories. In the following example we will use two services.
+One that fetch a configuration, and the other will connect to a database.</p> <div class="language-typescript extra-class"><pre class="language-typescript"><code><span class="token keyword">type</span> <span class="token class-name">Config</span> <span class="token operator">=</span> <span class="token punctuation">{</span> dbUri<span class="token operator">:</span> <span class="token builtin">string</span> <span class="token punctuation">}</span>
+
+<span class="token keyword">class</span> <span class="token class-name">ConfigurationLoader</span> <span class="token punctuation">{</span>
+    <span class="token function">load</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token operator">:</span> <span class="token builtin">Promise</span><span class="token operator">&lt;</span>Config<span class="token operator">&gt;</span> <span class="token punctuation">{</span>
+        <span class="token comment">// ... fetch the configuration from file</span>
+    <span class="token punctuation">}</span>
+<span class="token punctuation">}</span>
+
+<span class="token keyword">class</span> <span class="token class-name">DbConnection</span> <span class="token punctuation">{</span>
+    <span class="token keyword">constructor</span><span class="token punctuation">(</span><span class="token keyword">private</span> <span class="token keyword">readonly</span> config<span class="token operator">:</span> Config<span class="token punctuation">)</span> <span class="token punctuation">{</span><span class="token punctuation">}</span>
+<span class="token punctuation">}</span>
+</code></pre></div><div class="language-typescript extra-class"><pre class="language-typescript"><code><span class="token keyword">import</span> <span class="token punctuation">{</span>createContainerBuilder<span class="token punctuation">,</span> LifeCycle<span class="token punctuation">,</span> AsyncServiceProviderInterface<span class="token punctuation">}</span> <span class="token keyword">from</span> <span class="token string">'@botflx/dependency-injection-container'</span>
+
+<span class="token keyword">const</span> builder <span class="token operator">=</span> <span class="token function">createContainerBuilder</span><span class="token punctuation">(</span><span class="token punctuation">)</span>
+
+<span class="token comment">// We add the service as an async factory.</span>
+builder<span class="token punctuation">.</span><span class="token function">addAsyncFactory</span><span class="token punctuation">(</span><span class="token string">'config'</span><span class="token punctuation">,</span> <span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token operator">=&gt;</span> <span class="token keyword">new</span> <span class="token class-name">ConfigurationLoader</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">.</span><span class="token function">load</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">,</span> LifeCycle<span class="token punctuation">.</span>Singleton<span class="token punctuation">)</span>
+
+<span class="token comment">// We use the previously injected service.</span>
+builder<span class="token punctuation">.</span><span class="token function">addAsyncFactory</span><span class="token punctuation">(</span>
+    <span class="token string">'connection'</span><span class="token punctuation">,</span> 
+    <span class="token keyword">async</span> <span class="token punctuation">(</span>provider<span class="token operator">:</span> AsyncServiceProviderInterface<span class="token punctuation">)</span> <span class="token operator">=&gt;</span> <span class="token punctuation">{</span>
+        <span class="token keyword">const</span> config <span class="token operator">=</span> <span class="token keyword">await</span> provider<span class="token punctuation">.</span><span class="token generic-function"><span class="token function">getAsync</span><span class="token generic class-name"><span class="token operator">&lt;</span>Config<span class="token operator">&gt;</span></span></span><span class="token punctuation">(</span><span class="token string">'config'</span><span class="token punctuation">)</span>
+        <span class="token keyword">return</span> <span class="token keyword">new</span> <span class="token class-name">DbConnection</span><span class="token punctuation">(</span>config<span class="token punctuation">)</span>
+    <span class="token punctuation">}</span><span class="token punctuation">,</span>
+    LifeCycle<span class="token punctuation">.</span>Singleton
+<span class="token punctuation">)</span>
+
+<span class="token comment">// Create the container</span>
+<span class="token keyword">const</span> container <span class="token operator">=</span> builder<span class="token punctuation">.</span><span class="token function">build</span><span class="token punctuation">(</span><span class="token punctuation">)</span>
+
+<span class="token comment">// Fetch the service</span>
+<span class="token keyword">const</span> connection <span class="token operator">=</span> <span class="token keyword">await</span> container<span class="token punctuation">.</span><span class="token generic-function"><span class="token function">getAsync</span><span class="token generic class-name"><span class="token operator">&lt;</span>Connection<span class="token operator">&gt;</span></span></span><span class="token punctuation">(</span><span class="token string">'connection'</span><span class="token punctuation">)</span>
+</code></pre></div><p>When calling <code>addAsyncFactory</code> you need to pass an async factory instead of a sync factory.
+This async factory must return a <code>Promise</code> of the service. The first parameter of the factory
+is also different from the <code>addFactory</code> which is sync.</p> <p>You can access sync services from an async factory, in fact the
+<code>AsyncServiceProviderInterface</code> extends the <code>SyncServiceProviderInterface</code>.</p> <h2 id="service-providers"><a href="#service-providers" class="header-anchor">#</a> Service providers</h2> <p>In the previous example we used two interfaces to retrieve services' dependencies:</p> <ul><li><code>AsyncServiceProviderInterface</code> for async dependencies</li> <li><code>SyncServiceProviderInterface</code> for sync dependencies</li></ul> <p>The reason we use those interface instead of the <code>ContainerInterface</code> directly is to ensure
+that services added using the sync methods can't access async services, this way no sync services
+can depend on async services.</p> <p>Here is the declaration of those two interfaces.</p> <div class="language-typescript extra-class"><pre class="language-typescript"><code><span class="token keyword">export</span> <span class="token keyword">interface</span> <span class="token class-name">SyncServiceProviderInterface</span> <span class="token punctuation">{</span>
+    <span class="token keyword">get</span><span class="token operator">&lt;</span>TService<span class="token operator">&gt;</span><span class="token punctuation">(</span>key<span class="token operator">:</span> ServiceKey<span class="token punctuation">)</span><span class="token operator">:</span> TService
+    <span class="token function">has</span><span class="token punctuation">(</span>key<span class="token operator">:</span> ServiceKey<span class="token punctuation">)</span><span class="token operator">:</span> <span class="token builtin">boolean</span>
+<span class="token punctuation">}</span>
+
+<span class="token comment">// Async service provider are sync service provider</span>
+<span class="token keyword">export</span> <span class="token keyword">interface</span> <span class="token class-name">AsyncServiceProviderInterface</span> <span class="token keyword">extends</span> <span class="token class-name">SyncServiceProviderInterface</span> <span class="token punctuation">{</span>
+    <span class="token generic-function"><span class="token function">getAsync</span><span class="token generic class-name"><span class="token operator">&lt;</span>TService<span class="token operator">&gt;</span></span></span><span class="token punctuation">(</span>key<span class="token operator">:</span> ServiceKey<span class="token punctuation">)</span><span class="token operator">:</span> <span class="token builtin">Promise</span><span class="token operator">&lt;</span>TService<span class="token operator">&gt;</span>
+    <span class="token function">hasAsync</span><span class="token punctuation">(</span>key<span class="token operator">:</span> ServiceKey<span class="token punctuation">)</span><span class="token operator">:</span> <span class="token builtin">boolean</span>
+<span class="token punctuation">}</span>
+</code></pre></div><blockquote><p>This provider interface will possibly be replaced by a proxy system
+that allows object destructuring.</p></blockquote> <h2 id="service-loaders"><a href="#service-loaders" class="header-anchor">#</a> Service loaders</h2> <p>When bootstrapping your container you can end up with a huge file
+with a lot of factory definition even if you extract factories in other files.</p> <p>To resolve this issue, you can use service loaders. A service loader is just
+a function taking as first parameter a container builder and returning void.</p> <div class="language-typescript extra-class"><pre class="language-typescript"><code><span class="token keyword">import</span> <span class="token punctuation">{</span>ServiceLoaderInterface<span class="token punctuation">,</span> LifeCycle<span class="token punctuation">,</span> createContainerBuilder<span class="token punctuation">}</span> <span class="token keyword">from</span> <span class="token string">'@botflx/dependency-injection-container'</span>
+
+<span class="token comment">// Declare a service loader</span>
+<span class="token keyword">const</span> myLoader<span class="token operator">:</span> <span class="token function-variable function">ServiceLoaderInterface</span> <span class="token operator">=</span> builder <span class="token operator">=&gt;</span> <span class="token punctuation">{</span>
+    builder<span class="token punctuation">.</span><span class="token function">addFactory</span><span class="token punctuation">(</span><span class="token string">'other service'</span><span class="token punctuation">,</span> <span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token operator">=&gt;</span> <span class="token keyword">new</span> <span class="token class-name">OtherService</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">,</span> LifeCycle<span class="token punctuation">.</span>Singleton<span class="token punctuation">)</span>
+    builder<span class="token punctuation">.</span><span class="token function">addFactory</span><span class="token punctuation">(</span><span class="token string">'my service'</span><span class="token punctuation">,</span> <span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token operator">=&gt;</span> <span class="token keyword">new</span> <span class="token class-name">MyService</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">,</span> LifeCycle<span class="token punctuation">.</span>Singleton<span class="token punctuation">)</span>
+<span class="token punctuation">}</span>
+
+<span class="token comment">// Give the loader to a container builder</span>
+<span class="token keyword">const</span> builder <span class="token operator">=</span> <span class="token function">createContainerBuilder</span><span class="token punctuation">(</span><span class="token punctuation">{</span>
+    loaders<span class="token operator">:</span> <span class="token punctuation">[</span> myLoader <span class="token punctuation">]</span>
+<span class="token punctuation">}</span><span class="token punctuation">)</span>
+
+<span class="token comment">// Build the container</span>
+<span class="token keyword">const</span> container <span class="token operator">=</span> builder<span class="token punctuation">.</span><span class="token function">build</span><span class="token punctuation">(</span><span class="token punctuation">)</span>
+
+<span class="token comment">// Retrieve the service</span>
+<span class="token keyword">const</span> myService <span class="token operator">=</span> container<span class="token punctuation">.</span><span class="token keyword">get</span><span class="token operator">&lt;</span>MyService<span class="token operator">&gt;</span><span class="token punctuation">(</span><span class="token string">&quot;my service&quot;</span><span class="token punctuation">)</span>
+</code></pre></div><h2 id="decorators"><a href="#decorators" class="header-anchor">#</a> Decorators</h2> <p>You can also use decorators to build your declare your services with a loader.</p> <div class="language-typescript extra-class"><pre class="language-typescript"><code><span class="token keyword">import</span> <span class="token punctuation">{</span>
+    createContainerBuilder<span class="token punctuation">,</span>
+    reflectServiceLoader<span class="token punctuation">,</span>
+    Service<span class="token punctuation">,</span>
+    Inject<span class="token punctuation">,</span>
+    LifeCycle
+<span class="token punctuation">}</span> <span class="token keyword">from</span> <span class="token string">'@botflx/dependency-injection-container'</span>
+
+@<span class="token function">Service</span><span class="token punctuation">(</span><span class="token string">&quot;my service&quot;</span><span class="token punctuation">,</span> LifeCycle<span class="token punctuation">.</span>Singleton<span class="token punctuation">)</span>
+<span class="token keyword">class</span> <span class="token class-name">MyService</span> <span class="token punctuation">{</span>
+    <span class="token keyword">constructor</span><span class="token punctuation">(</span>@<span class="token function">Inject</span><span class="token punctuation">(</span><span class="token string">&quot;other service&quot;</span><span class="token punctuation">)</span> otherService<span class="token operator">:</span> OtherService<span class="token punctuation">)</span> <span class="token punctuation">{</span><span class="token punctuation">}</span>
+<span class="token punctuation">}</span>
+
+@<span class="token function">Service</span><span class="token punctuation">(</span><span class="token string">&quot;other service&quot;</span><span class="token punctuation">,</span> LifeCycle<span class="token punctuation">.</span>Singleton<span class="token punctuation">)</span>
+<span class="token keyword">class</span> <span class="token class-name">OtherService</span> <span class="token punctuation">{</span>
+<span class="token punctuation">}</span>
+
+<span class="token keyword">const</span> builder <span class="token operator">=</span> <span class="token function">createContainerBuilder</span><span class="token punctuation">(</span><span class="token punctuation">{</span>
+    loaders<span class="token operator">:</span> <span class="token punctuation">[</span> <span class="token function">reflectServiceLoader</span><span class="token punctuation">(</span><span class="token punctuation">[</span> OtherService<span class="token punctuation">,</span> MyService <span class="token punctuation">]</span><span class="token punctuation">)</span> <span class="token punctuation">]</span>
+<span class="token punctuation">}</span><span class="token punctuation">)</span>
+
+<span class="token keyword">const</span> container <span class="token operator">=</span> builder<span class="token punctuation">.</span><span class="token function">build</span><span class="token punctuation">(</span><span class="token punctuation">)</span>
+
+<span class="token keyword">const</span> myService <span class="token operator">=</span> container<span class="token punctuation">.</span><span class="token keyword">get</span><span class="token operator">&lt;</span>MyService<span class="token operator">&gt;</span><span class="token punctuation">(</span><span class="token string">&quot;my service&quot;</span><span class="token punctuation">)</span>
+</code></pre></div><h2 id="scoped-container"><a href="#scoped-container" class="header-anchor">#</a> Scoped container</h2> <p>Sometimes you want your container so be used only for a given http request.
+You can create those kinds of container as following:</p> <div class="language-typescript extra-class"><pre class="language-typescript"><code><span class="token keyword">import</span> <span class="token punctuation">{</span>createContainerBuilder<span class="token punctuation">,</span> createScopedContainerBuilder<span class="token punctuation">,</span> LifeCycle<span class="token punctuation">}</span> <span class="token keyword">from</span> <span class="token string">'@botflx/dependency-injection-container'</span>
+
+<span class="token comment">// Create a global container</span>
+<span class="token keyword">const</span> globalContainer <span class="token operator">=</span> <span class="token function">createContainerBuilder</span><span class="token punctuation">(</span><span class="token punctuation">)</span>
+    <span class="token punctuation">.</span><span class="token function">addFactory</span><span class="token punctuation">(</span><span class="token string">'foo'</span><span class="token punctuation">,</span> <span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token operator">=&gt;</span> <span class="token string">'foo'</span><span class="token punctuation">,</span> LifeCycle<span class="token punctuation">.</span>Singleton<span class="token punctuation">)</span>
+    <span class="token punctuation">.</span><span class="token function">addFactory</span><span class="token punctuation">(</span><span class="token string">'bar'</span><span class="token punctuation">,</span> <span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token operator">=&gt;</span> <span class="token string">'bar'</span><span class="token punctuation">,</span> LifeCycle<span class="token punctuation">.</span>Singleton<span class="token punctuation">)</span>
+    <span class="token punctuation">.</span><span class="token function">build</span><span class="token punctuation">(</span><span class="token punctuation">)</span>
+
+<span class="token comment">// Create a container builder from the global container</span>
+<span class="token keyword">const</span> perRequestBuilder <span class="token operator">=</span> <span class="token function">createScopedContainerBuilder</span><span class="token punctuation">(</span>globalContainer<span class="token punctuation">)</span>
+    <span class="token punctuation">.</span><span class="token function">addFactory</span><span class="token punctuation">(</span><span class="token string">'foobar'</span><span class="token punctuation">,</span> provider <span class="token operator">=&gt;</span> <span class="token template-string"><span class="token template-punctuation string">`</span><span class="token interpolation"><span class="token interpolation-punctuation punctuation">${</span>provider<span class="token punctuation">.</span><span class="token keyword">get</span><span class="token punctuation">(</span><span class="token string">'foo'</span><span class="token punctuation">)</span><span class="token interpolation-punctuation punctuation">}</span></span><span class="token interpolation"><span class="token interpolation-punctuation punctuation">${</span>provider<span class="token punctuation">.</span><span class="token keyword">get</span><span class="token punctuation">(</span><span class="token string">'bar'</span><span class="token punctuation">)</span><span class="token interpolation-punctuation punctuation">}</span></span><span class="token template-punctuation string">`</span></span><span class="token punctuation">,</span> LifeCycle<span class="token punctuation">.</span>Singleton<span class="token punctuation">)</span>
+
+<span class="token comment">// Create a container per request.</span>
+<span class="token keyword">const</span> perRequestContainer1 <span class="token operator">=</span> perRequestBuilder<span class="token punctuation">.</span><span class="token function">build</span><span class="token punctuation">(</span><span class="token punctuation">)</span>
+<span class="token keyword">const</span> perRequestContainer2 <span class="token operator">=</span> perRequestBuilder<span class="token punctuation">.</span><span class="token function">build</span><span class="token punctuation">(</span><span class="token punctuation">)</span>
+<span class="token keyword">const</span> perRequestContainer3 <span class="token operator">=</span> perRequestBuilder<span class="token punctuation">.</span><span class="token function">build</span><span class="token punctuation">(</span><span class="token punctuation">)</span>
+</code></pre></div></div> <footer class="page-edit"><!----> <!----></footer> <div class="page-nav"><p class="inner"><span class="prev">
+      ←
+      <a href="/dependency-injection-container/guide/installation.html" class="prev">
+        Installation
+      </a></span> <!----></p></div> </main></div><div class="global-ui"></div></div>
+    <script src="/dependency-injection-container/assets/js/app.e4c39402.js" defer></script><script src="/dependency-injection-container/assets/js/2.8fd7e06d.js" defer></script><script src="/dependency-injection-container/assets/js/10.3055b94f.js" defer></script>
+  </body>
+</html>
