@@ -21,7 +21,7 @@
   "bugs": {
     "url": "https://github.com/botflux/random-di/issues"
   },
-  "homepage": "https://github.com/botflux/random-di#readme",
+  "homepage": "https://botflux.github.io/random-di",
   "devDependencies": {
     "@types/jest": "^26.0.23",
     "reflect-metadata": "^0.1.13",
