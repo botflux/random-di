@@ -15,7 +15,8 @@
     "docs:dev": "vuepress dev docs",
     "docs:prod": "vuepress build docs",
 
-    "packages:version": "npm version -ws"
+    "packages:version": "npm version -ws",
+    "packages:publish": "cd packages/$PACKAGE && npm publish"
   },
   "keywords": [
     "di"

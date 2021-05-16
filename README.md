@@ -53,3 +53,35 @@ const serviceB = container.get<ServiceB>('serviceB')
 ## Docs
 
 [https://botflux.github.io/random-di](https://botflux.github.io/random-di)
+
+## Scripts
+
+### Run tests
+
+```shell
+npm run test
+npm run test:watch
+```
+
+### Run build
+
+```shell
+npm run build
+```
+
+### Version and publish
+
+```shell
+# Version every packages
+npm run packages:version -- patch|minor|major
+
+# Publish a package
+PACKAGE=container npm run packages:publish
+```
+
+### Docs
+
+```shell
+npm run docs:dev
+npm run docs:prod
+```
