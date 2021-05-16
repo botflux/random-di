@@ -13,7 +13,9 @@
     "test:coverage:coveralls": "jest --coverage --coverageReporters=text-lcov | coveralls",
     "build": "npm run build --ws",
     "docs:dev": "vuepress dev docs",
-    "docs:prod": "vuepress build docs"
+    "docs:prod": "vuepress build docs",
+
+    "packages:version": "npm version -ws"
   },
   "keywords": [
     "di"
