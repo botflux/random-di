@@ -1,0 +1,11 @@
+.idea
+tests
+src
+examples
+tsconfig.json
+jest.config.js
+node_modules
+.github
+.travis.yml
+CODE_OF_CONDUCT.md
+.eslintrc.js
