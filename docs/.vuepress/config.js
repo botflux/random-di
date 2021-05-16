@@ -20,6 +20,7 @@ module.exports = {
                     "/guide/",
                     "/guide/installation.md",
                     "/guide/usages.md",
+                    "/guide/migration.md"
                 ]
             }
         ]
