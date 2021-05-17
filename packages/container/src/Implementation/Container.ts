@@ -1,22 +1,24 @@
 import {
+    AsyncServiceFactory,
+    AsyncServiceFactoryOptions,
+    AsyncServiceProviderInterface,
     ContainerBuilderInterface,
     ContainerInterface,
     LifeCycle,
-    ServiceConstructor,
-    SyncServiceFactory,
-    ServiceKey,
-    AsyncServiceFactory,
-    ServiceFactory,
     ServiceAlreadyRegisteredError,
+    ServiceConstructor,
+    ServiceConstructorOptions,
+    ServiceKey,
+    ServiceLoaderInterface,
     ServiceNotFoundError,
-    ServiceLoaderInterface, AsyncServiceProviderInterface, SyncServiceProviderInterface,
+    SyncServiceFactory,
+    SyncServiceFactoryOptions,
+    SyncServiceProviderInterface,
 } from '../Interfaces'
-import {
-    createSingletonFactoryRegistry,
-    createTransientFactoryRegistry,
-    FactoryRegistry
-} from './FactoryRegistry'
+import {createSingletonFactoryRegistry, createTransientFactoryRegistry, FactoryRegistry} from './FactoryRegistry'
 import {createAsyncServiceProvider, createSyncServiceProvider} from './ServiceProvider'
+
+const isFunction = (value: unknown): value is Function => typeof value === 'function'
 
 class Container implements ContainerInterface {
 
@@ -27,10 +29,10 @@ class Container implements ContainerInterface {
         new Map<LifeCycle, FactoryRegistry>()
 
     constructor(
-        syncSingletonFactories: Map<ServiceKey, SyncServiceFactory<unknown>>,
-        syncTransientFactories: Map<ServiceKey, SyncServiceFactory<unknown>>,
-        asyncSingletonFactories: Map<ServiceKey, SyncServiceFactory<Promise<unknown>>>,
-        asyncTransientFactories: Map<ServiceKey, SyncServiceFactory<Promise<unknown>>>,
+        syncSingletonFactories: Map<ServiceKey, SyncServiceFactoryOptions<unknown>>,
+        syncTransientFactories: Map<ServiceKey, SyncServiceFactoryOptions<unknown>>,
+        asyncSingletonFactories: Map<ServiceKey, AsyncServiceFactoryOptions<unknown>>,
+        asyncTransientFactories: Map<ServiceKey, AsyncServiceFactoryOptions<unknown>>,
         protected readonly createSyncServiceProvider: (containerInterface: ContainerInterface) => SyncServiceProviderInterface,
         protected readonly createAsyncServiceProvider: (containerInterface: ContainerInterface) => AsyncServiceProviderInterface
     ) {
@@ -73,16 +75,21 @@ class Container implements ContainerInterface {
             || this.asyncFactoriesRegistry.get(LifeCycle.Transient)?.has(key)
             || false
     }
+
+    async clear(): Promise<void> {
+        await this.syncFactoriesRegistry.get(LifeCycle.Singleton)?.clear()
+        await this.asyncFactoriesRegistry.get(LifeCycle.Singleton)?.clear()
+    }
 }
 
 class ContainerBuilder implements ContainerBuilderInterface {
     private readonly syncFactories =
-        new Map<LifeCycle, Map<ServiceKey, SyncServiceFactory<unknown>>>()
+        new Map<LifeCycle, Map<ServiceKey, SyncServiceFactoryOptions<unknown>>>()
             .set(LifeCycle.Singleton, new Map())
             .set(LifeCycle.Transient, new Map())
 
     private readonly asyncFactories =
-        new Map<LifeCycle, Map<ServiceKey, AsyncServiceFactory<Promise<unknown>>>>()
+        new Map<LifeCycle, Map<ServiceKey, AsyncServiceFactoryOptions<Promise<unknown>>>>()
             .set(LifeCycle.Singleton, new Map())
             .set(LifeCycle.Transient, new Map())
 
@@ -93,13 +100,16 @@ class ContainerBuilder implements ContainerBuilderInterface {
         options.loaders.forEach(loader => loader(this))
     }
 
-    addFactory<TService>(key: ServiceKey, factory: SyncServiceFactory<TService>, lifeCycle: LifeCycle): this {
+    addFactory<TService>(key: ServiceKey, factory: SyncServiceFactory<TService> | SyncServiceFactoryOptions<TService>, lifeCycle: LifeCycle): this {
         if (this.isAlreadyRegistered(key))
             throw new ServiceAlreadyRegisteredError(key)
 
+        const factoryOptions: SyncServiceFactoryOptions<TService> = isFunction(factory)
+            ? { factory, clear: () => Promise.resolve() }
+            : factory
 
-        this.syncFactories.get(lifeCycle)?.set(key, factory)
-        // this.syncFactories.set(key, {factory, lifeCycle})
+        this.syncFactories.get(lifeCycle)?.set(key, factoryOptions as SyncServiceFactoryOptions<unknown>)
+
         return this
     }
 
@@ -114,16 +124,24 @@ class ContainerBuilder implements ContainerBuilderInterface {
         )
     }
 
-    addConstructor<TConstructor>(key: ServiceKey, constructor: ServiceConstructor<TConstructor>, lifeCycle: LifeCycle): this {
-        this.syncFactories.get(lifeCycle)?.set(key, container => new constructor(container))
+    addConstructor<TConstructor>(key: ServiceKey, constructor: ServiceConstructor<TConstructor> | ServiceConstructorOptions<TConstructor>, lifeCycle: LifeCycle): this {
+        const factoryOptions: SyncServiceFactoryOptions<TConstructor> = isFunction(constructor)
+            ? { factory: container => new constructor(container), clear: () => Promise.resolve() }
+            : { factory: container => new constructor.constructor(container), clear: constructor.clear }
+
+        this.syncFactories.get(lifeCycle)?.set(key, factoryOptions as SyncServiceFactoryOptions<unknown>)
         return this
     }
 
-    addAsyncFactory<TService>(key: ServiceKey, factory: AsyncServiceFactory<Promise<TService>>, lifeCycle: LifeCycle): this {
+    addAsyncFactory<TService>(key: ServiceKey, factory: AsyncServiceFactory<Promise<TService>> | AsyncServiceFactoryOptions<Promise<TService>>, lifeCycle: LifeCycle): this {
         if (this.isAlreadyRegistered(key))
             throw new ServiceAlreadyRegisteredError(key)
 
-        this.asyncFactories.get(lifeCycle)?.set(key, factory)
+        const factoryOptions: AsyncServiceFactoryOptions<Promise<TService>> = isFunction(factory)
+            ? { factory, clear: () => Promise.resolve() }
+            : factory
+
+        this.asyncFactories.get(lifeCycle)?.set(key, factoryOptions as AsyncServiceFactoryOptions<Promise<unknown>>)
         return this
     }
 

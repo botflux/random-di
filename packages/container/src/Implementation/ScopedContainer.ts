@@ -51,6 +51,10 @@ class ScopedContainer implements ContainerInterface {
     hasAsync(key: ServiceKey): boolean {
         return this.parentContainer.hasAsync(key) || this.innerContainer.hasAsync(key)
     }
+
+    clear(): Promise<void> {
+        return Promise.resolve(undefined);
+    }
 }
 
 class ScopedContainerBuilder implements ContainerBuilderInterface {

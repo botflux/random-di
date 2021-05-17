@@ -4,6 +4,8 @@ export interface ContainerInterface {
 
     has(key: ServiceKey): boolean
     hasAsync(key: ServiceKey): boolean
+
+    clear(): Promise<void>
 }
 
 export type ServiceKey = string | Symbol | number
@@ -12,10 +14,41 @@ export type AsyncServiceFactory<TService> = (provider: AsyncServiceProviderInter
 export type ServiceFactory<TService> = AsyncServiceFactory<TService> | SyncServiceFactory<TService>
 export type ServiceConstructor<TService> = { new(...args: any[]): TService }
 
+export type ClearServiceFunction<TService> = (service: TService) => Promise<void>
+
+export type SyncServiceFactoryOptions<TService> = {
+    factory: SyncServiceFactory<TService>,
+    clear: ClearServiceFunction<TService>
+}
+
+export type AsyncServiceFactoryOptions<TService> = {
+    factory: AsyncServiceFactory<TService>
+    clear: ClearServiceFunction<TService>
+}
+
+export type ServiceConstructorOptions<TService> = {
+    constructor: ServiceConstructor<TService>
+    clear: ClearServiceFunction<TService>
+}
+
 export interface ContainerBuilderInterface {
-    addFactory<TService>(key: ServiceKey, factory: SyncServiceFactory<TService>, lifeCycle: LifeCycle): this
-    addConstructor<TConstructor>(key: ServiceKey, constructor: ServiceConstructor<TConstructor>, lifeCycle: LifeCycle): this
-    addAsyncFactory<TService>(key: ServiceKey, factory: AsyncServiceFactory<Promise<TService>>, lifeCycle: LifeCycle): this
+    addFactory<TService>(
+        key: ServiceKey,
+        factory: SyncServiceFactory<TService> | SyncServiceFactoryOptions<TService>,
+        lifeCycle: LifeCycle
+    ): this
+
+    addConstructor<TConstructor>(
+        key: ServiceKey,
+        constructor: ServiceConstructor<TConstructor> | ServiceConstructorOptions<TConstructor>,
+        lifeCycle: LifeCycle
+    ): this
+
+    addAsyncFactory<TService>(
+        key: ServiceKey,
+        factory: AsyncServiceFactory<Promise<TService>> | AsyncServiceFactoryOptions<Promise<TService>>,
+        lifeCycle: LifeCycle
+    ): this
 
     build(): ContainerInterface
 }

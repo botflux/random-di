@@ -1,7 +1,10 @@
-import {ContainerInterface, LifeCycle} from '../src'
-import {createContainerBuilder} from '../src'
-import {createScopedContainerBuilder} from '../src'
-import {ServiceNotFoundError} from '../src'
+import {
+    ContainerInterface,
+    createContainerBuilder,
+    createScopedContainerBuilder,
+    LifeCycle,
+    ServiceNotFoundError
+} from '../src'
 
 class MyService {}
 class AnotherService {
@@ -339,6 +342,28 @@ describe('situation that should not append', function () {
         expect(shouldNotThrow6).not.toThrow(Error)
         expect(isAlreadyRegistered).toBe(false)
         expect(container).not.toBeNull()
+    })
+})
+
+describe('clear container dependencies', function () {
+    it('should clear dependencies', async function () {
+        const cleanCallback = jest.fn((service: any) => Promise.resolve())
+
+        // Arrange
+        const container = createContainerBuilder()
+            .addFactory('hello', {
+                factory: () => 'world',
+                clear: service =>  cleanCallback(service)
+            }, LifeCycle.Singleton)
+            .build()
+
+        // Act
+        // Force the container to create the service
+        container.get('hello')
+        await container.clear()
+
+        // Assert
+        expect(cleanCallback).toBeCalledTimes(1)
     })
 })
 
