@@ -16,92 +16,113 @@ class RandomNumberService {
     public readonly n: number = Math.random()
 }
 
-it('should add factories', function () {
-    // Arrange
-    const builder = createContainerBuilder()
+describe('simple container usage', function () {
+    it('should add a sync factory', function () {
+        // Arrange
+        const builder = createContainerBuilder()
 
-    const container = builder
-        .addFactory('MyService', () => new MyService(), LifeCycle.Singleton)
-        .build()
+        const container = builder
+            .addFactory('MyService', () => new MyService(), LifeCycle.Singleton)
+            .build()
 
-    // Act
-    const myService = container.get<MyService> ('MyService')
+        // Act
+        const myService = container.get<MyService> ('MyService')
 
-    // Assert
-    expect(myService).toBeInstanceOf(MyService)
+        // Assert
+        expect(myService).toBeInstanceOf(MyService)
+    })
+
+    it('should add a sync service as a constructor', function () {
+        // Arrange
+        const symbol = Symbol("my service")
+
+        const container = createContainerBuilder()
+            .addConstructor(symbol, MyService, LifeCycle.Singleton)
+            .build()
+
+        // Act
+        const myService = container.get<MyService>(symbol)
+
+        // Assert
+        expect(myService).toBeInstanceOf(MyService)
+    })
+
+    it('should add a async factory', async function () {
+        // Arrange
+        const key = 'my service'
+        const container = createContainerBuilder()
+            .addAsyncFactory(key, () => Promise.resolve(new MyService()), LifeCycle.Singleton)
+            .build()
+
+        // Act
+        const myService = await container.getAsync<MyService>(key)
+
+        // Assert
+        expect(myService).toBeInstanceOf(MyService)
+    })
+
+    it('should get sync service', function () {
+        // Arrange
+        const container = createContainerBuilder()
+            .addFactory('bar', () => 'bar', LifeCycle.Singleton)
+            .addFactory('foo', () => 'foo', LifeCycle.Transient)
+            .build()
+
+        // Act
+        const bar = container.get('bar')
+        const foo = container.get('foo')
+
+        // Assert
+        expect(bar).toBe('bar')
+        expect(foo).toBe('foo')
+    })
 })
 
-it('should add constructors', function () {
-    // Arrange
-    const symbol = Symbol("my service")
+describe('construct services using the service provider', function () {
+    it('should pass the container to factories', function () {
+        // Arrange
+        const container = createContainerBuilder()
+            .addConstructor('MyService', MyService, LifeCycle.Singleton)
+            .addFactory("AnotherService", container => new AnotherService(container.get('MyService')), LifeCycle.Singleton)
+            .build()
 
-    const container = createContainerBuilder()
-        .addConstructor(symbol, MyService, LifeCycle.Singleton)
-        .build()
+        // Act
+        const anotherService = container.get<AnotherService>("AnotherService")
 
-    // Act
-    const myService = container.get<MyService>(symbol)
+        // Assert
+        expect(anotherService).toBeInstanceOf(AnotherService)
+        expect(anotherService.myService).toBeInstanceOf(MyService)
+    })
 
-    // Assert
-    expect(myService).toBeInstanceOf(MyService)
-})
+    it('should pass the container to constructors', function () {
+        // Arrange
+        const container = createContainerBuilder()
+            .addConstructor('MyService', MyService, LifeCycle.Singleton)
+            .addConstructor('YetAnotherService', YetAnotherService, LifeCycle.Singleton)
+            .build()
 
-it('should add async factories', async function () {
-    // Arrange
-    const key = 'my service'
-    const container = createContainerBuilder()
-        .addAsyncFactory(key, () => Promise.resolve(new MyService()), LifeCycle.Singleton)
-        .build()
+        // Act
+        const service = container.get<YetAnotherService>("YetAnotherService")
 
-    // Act
-    const myService = await container.getAsync<MyService>(key)
+        // Assert
+        expect(service).toBeInstanceOf(YetAnotherService)
+        expect(service.container).not.toBeFalsy()
+    })
 
-    // Assert
-    expect(myService).toBeInstanceOf(MyService)
-})
+    it('should pass sync factories to async factories', async function () {
+        // Arrange
+        const container = createContainerBuilder()
+            .addFactory('Hello', () => "world", LifeCycle.Singleton)
+            .addAsyncFactory('Hello world', container => Promise.resolve(`Hello ${container.get("Hello")}`), LifeCycle.Singleton)
+            .build()
 
-it('should pass the container to factories', function () {
-    // Arrange
-    const container = createContainerBuilder()
-        .addConstructor('MyService', MyService, LifeCycle.Singleton)
-        .addFactory("AnotherService", container => new AnotherService(container.get('MyService')), LifeCycle.Singleton)
-        .build()
+        // Act
+        const helloWorld = await container.getAsync("Hello world")
 
-    // Act
-    const anotherService = container.get<AnotherService>("AnotherService")
+        // Assert
+        expect(helloWorld).toBe("Hello world")
+    })
 
-    // Assert
-    expect(anotherService).toBeInstanceOf(AnotherService)
-    expect(anotherService.myService).toBeInstanceOf(MyService)
-})
-
-it('should pass the container to constructors', function () {
-    // Arrange
-    const container = createContainerBuilder()
-        .addConstructor('MyService', MyService, LifeCycle.Singleton)
-        .addConstructor('YetAnotherService', YetAnotherService, LifeCycle.Singleton)
-        .build()
-
-    // Act
-    const service = container.get<YetAnotherService>("YetAnotherService")
-
-    // Assert
-    expect(service).toBeInstanceOf(YetAnotherService)
-    expect(service.container).not.toBeFalsy()
-})
-
-it('should pass sync factories to async factories', async function () {
-    // Arrange
-    const container = createContainerBuilder()
-        .addFactory('Hello', () => "world", LifeCycle.Singleton)
-        .addAsyncFactory('Hello world', container => Promise.resolve(`Hello ${container.get("Hello")}`), LifeCycle.Singleton)
-        .build()
-
-    // Act
-    const helloWorld = await container.getAsync("Hello world")
-
-    // Assert
-    expect(helloWorld).toBe("Hello world")
 })
 
 it('should throw when overriding service', function () {
@@ -132,125 +153,127 @@ it('should throw when overriding service', function () {
     expect(shouldThrow4).toThrow(`Service with key "MyService" was already registered.`)
 })
 
-it('should create singleton services', function () {
-    // Arrange
-    const container = createContainerBuilder()
-        .addFactory("A", () => new RandomNumberService(), LifeCycle.Singleton)
-        .addAsyncFactory("B", () => Promise.resolve(new RandomNumberService()), LifeCycle.Singleton)
-        .addConstructor("C", RandomNumberService, LifeCycle.Singleton)
-        .build()
+describe('services lifetime', function () {
 
-    // Act
-    const a1 = container.get<RandomNumberService>("A")
-    const a2 = container.get<RandomNumberService>("A")
+    it('should create singleton services', function () {
+        // Arrange
+        const container = createContainerBuilder()
+            .addFactory("A", () => new RandomNumberService(), LifeCycle.Singleton)
+            .addAsyncFactory("B", () => Promise.resolve(new RandomNumberService()), LifeCycle.Singleton)
+            .addConstructor("C", RandomNumberService, LifeCycle.Singleton)
+            .build()
 
-    const b1 = container.getAsync<RandomNumberService>("B")
-    const b2 = container.getAsync<RandomNumberService>("B")
+        // Act
+        const a1 = container.get<RandomNumberService>("A")
+        const a2 = container.get<RandomNumberService>("A")
 
-    const c1 = container.get<RandomNumberService>("A")
-    const c2 = container.get<RandomNumberService>("A")
+        const b1 = container.getAsync<RandomNumberService>("B")
+        const b2 = container.getAsync<RandomNumberService>("B")
 
-    // Assert
-    expect(a1).toEqual(a2)
-    expect(b1).toEqual(b2)
-    expect(c1).toEqual(c2)
+        const c1 = container.get<RandomNumberService>("A")
+        const c2 = container.get<RandomNumberService>("A")
+
+        // Assert
+        expect(a1).toEqual(a2)
+        expect(b1).toEqual(b2)
+        expect(c1).toEqual(c2)
+    })
+
+    it('should create transient service', async function () {
+        // Arrange
+        const container = createContainerBuilder()
+            .addFactory("A", () => new RandomNumberService(), LifeCycle.Transient)
+            .addAsyncFactory("B", () => Promise.resolve(new RandomNumberService()), LifeCycle.Transient)
+            .addConstructor("C", RandomNumberService, LifeCycle.Transient)
+            .build()
+
+        // Act
+        const a1 = container.get<RandomNumberService>("A")
+        const a2 = container.get<RandomNumberService>("A")
+
+        const b1 = await container.getAsync<RandomNumberService>("B")
+        const b2 = await container.getAsync<RandomNumberService>("B")
+
+        const c1 = container.get<RandomNumberService>("A")
+        const c2 = container.get<RandomNumberService>("A")
+
+        // Assert
+        expect(a1.n).not.toEqual(a2.n)
+        expect(b1.n).not.toEqual(b2.n)
+        expect(c1.n).not.toEqual(c2.n)
+    })
 })
 
-it('should create transient service', async function () {
-    // Arrange
-    const container = createContainerBuilder()
-        .addFactory("A", () => new RandomNumberService(), LifeCycle.Transient)
-        .addAsyncFactory("B", () => Promise.resolve(new RandomNumberService()), LifeCycle.Transient)
-        .addConstructor("C", RandomNumberService, LifeCycle.Transient)
-        .build()
+describe('scoped container', function () {
+    it('should create a scoped service', async function () {
+        // Arrange
+        const container = createContainerBuilder()
+            .addFactory("D", () => new RandomNumberService(), LifeCycle.Singleton)
+            .addAsyncFactory("E", () => Promise.resolve(new RandomNumberService()), LifeCycle.Singleton)
+            .addConstructor("F", RandomNumberService, LifeCycle.Singleton)
+            .build()
 
-    // Act
-    const a1 = container.get<RandomNumberService>("A")
-    const a2 = container.get<RandomNumberService>("A")
 
-    const b1 = await container.getAsync<RandomNumberService>("B")
-    const b2 = await container.getAsync<RandomNumberService>("B")
+        const scopedContainerBuilder = createScopedContainerBuilder(container)
+            .addFactory("A", () => new RandomNumberService(), LifeCycle.Singleton)
+            .addAsyncFactory("B", () => Promise.resolve(new RandomNumberService()), LifeCycle.Singleton)
+            .addConstructor("C", RandomNumberService, LifeCycle.Singleton)
 
-    const c1 = container.get<RandomNumberService>("A")
-    const c2 = container.get<RandomNumberService>("A")
+        const scopedContainer1 = scopedContainerBuilder.build()
+        const scopedContainer2 = scopedContainerBuilder.build()
 
-    // Assert
-    expect(a1.n).not.toEqual(a2.n)
-    expect(b1.n).not.toEqual(b2.n)
-    expect(c1.n).not.toEqual(c2.n)
+        // Act
+        const a1 = scopedContainer1.get<RandomNumberService>("A")
+        const b1 = await scopedContainer1.getAsync<RandomNumberService>("B")
+        const c1 = scopedContainer1.get<RandomNumberService>("C")
+        const d1 = scopedContainer1.get<RandomNumberService>("D")
+        const e1 = await scopedContainer1.getAsync<RandomNumberService>("E")
+        const f1 = scopedContainer1.get<RandomNumberService>("F")
+
+        const a2 = scopedContainer2.get<RandomNumberService>("A")
+        const b2 = await scopedContainer2.getAsync<RandomNumberService>("B")
+        const c2 = scopedContainer2.get<RandomNumberService>("C")
+        const d2 = scopedContainer2.get<RandomNumberService>("D")
+        const e2 = await scopedContainer2.getAsync<RandomNumberService>("E")
+        const f2 = scopedContainer2.get<RandomNumberService>("F")
+
+        // Assert
+        expect(a1.n).not.toBe(a2.n)
+        expect(b1.n).not.toBe(b2.n)
+        expect(c1.n).not.toBe(c2.n)
+
+        expect(d1.n).toBe(d2.n)
+        expect(e1.n).toBe(e2.n)
+        expect(f1.n).toBe(f2.n)
+    })
 })
 
-it('should create a scoped service', async function () {
-    // Arrange
-    const container = createContainerBuilder()
-        .addFactory("D", () => new RandomNumberService(), LifeCycle.Singleton)
-        .addAsyncFactory("E", () => Promise.resolve(new RandomNumberService()), LifeCycle.Singleton)
-        .addConstructor("F", RandomNumberService, LifeCycle.Singleton)
-        .build()
+describe('container errors', function () {
+    it('should throw when service is not found', async function () {
+        // Arrange
+        const container = createContainerBuilder().build()
 
+        // Act
+        const shouldThrow1 = () => container.get("hello")
+        const rejection = container.getAsync("Hello")
 
-    const scopedContainerBuilder = createScopedContainerBuilder(container)
-        .addFactory("A", () => new RandomNumberService(), LifeCycle.Singleton)
-        .addAsyncFactory("B", () => Promise.resolve(new RandomNumberService()), LifeCycle.Singleton)
-        .addConstructor("C", RandomNumberService, LifeCycle.Singleton)
+        // Assert
+        expect(shouldThrow1).toThrow('No service matching key "hello" found.')
+        await expect(rejection).rejects.toThrow('No service matching key "Hello" found.')
+    })
 
-    const scopedContainer1 = scopedContainerBuilder.build()
-    const scopedContainer2 = scopedContainerBuilder.build()
+    it('should throws with symbol', function () {
+        // Arrange
+        // Act
+        const error = new ServiceNotFoundError(Symbol("hello"))
 
-    // Act
-    const a1 = scopedContainer1.get<RandomNumberService>("A")
-    const b1 = await scopedContainer1.getAsync<RandomNumberService>("B")
-    const c1 = scopedContainer1.get<RandomNumberService>("C")
-    const d1 = scopedContainer1.get<RandomNumberService>("D")
-    const e1 = await scopedContainer1.getAsync<RandomNumberService>("E")
-    const f1 = scopedContainer1.get<RandomNumberService>("F")
-
-    const a2 = scopedContainer2.get<RandomNumberService>("A")
-    const b2 = await scopedContainer2.getAsync<RandomNumberService>("B")
-    const c2 = scopedContainer2.get<RandomNumberService>("C")
-    const d2 = scopedContainer2.get<RandomNumberService>("D")
-    const e2 = await scopedContainer2.getAsync<RandomNumberService>("E")
-    const f2 = scopedContainer2.get<RandomNumberService>("F")
-
-    // Assert
-    expect(a1.n).not.toBe(a2.n)
-    expect(b1.n).not.toBe(b2.n)
-    expect(c1.n).not.toBe(c2.n)
-
-    expect(d1.n).toBe(d2.n)
-    expect(e1.n).toBe(e2.n)
-    expect(f1.n).toBe(f2.n)
+        // Assert
+        expect(error.message).toBe(`No service matching key "Symbol(hello)" found.`)
+    })
 })
 
-it('should throw when service is not found', async function () {
-    // Arrange
-    const container = createContainerBuilder().build()
-
-    // Act
-    const shouldThrow1 = () => container.get("hello")
-    const rejection = container.getAsync("Hello")
 
 
-    // Assert
-    expect(shouldThrow1).toThrow('No service matching key "hello" found.')
-    await expect(rejection).rejects.toThrow('No service matching key "Hello" found.')
-})
-
-it('should get sync service', function () {
-    // Arrange
-    const container = createContainerBuilder()
-        .addFactory('bar', () => 'bar', LifeCycle.Singleton)
-        .addFactory('foo', () => 'foo', LifeCycle.Transient)
-        .build()
-
-    // Act
-    const bar = container.get('bar')
-    const foo = container.get('foo')
-
-    // Assert
-    expect(bar).toBe('bar')
-    expect(foo).toBe('foo')
-})
 
 describe('situation that should not append', function () {
     it('should throw service not found', async function () {
@@ -319,13 +342,3 @@ describe('situation that should not append', function () {
     })
 })
 
-it('should throws with symbol', function () {
-    // Arrange
-
-
-    // Act
-    const error = new ServiceNotFoundError(Symbol("hello"))
-
-    // Assert
-    expect(error.message).toBe(`No service matching key "Symbol(hello)" found.`)
-})

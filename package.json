@@ -9,7 +9,7 @@
   },
   "scripts": {
     "test": "npm run test --ws",
-    "test:watch": "npm run test:watch --ws",
+    "test:watch": "jest --watch",
     "test:coverage:coveralls": "jest --coverage --coverageReporters=text-lcov | coveralls",
     "build": "npm run build --ws",
     "docs:dev": "vuepress dev docs",
