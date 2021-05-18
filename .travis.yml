@@ -4,6 +4,7 @@ node_js:
 branches:
   only:
     - main
+    - container-cleaning
 install:
   - npm install
   - npm exec -ws -- npm install
