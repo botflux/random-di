@@ -365,5 +365,25 @@ describe('clear container dependencies', function () {
         // Assert
         expect(cleanCallback).toBeCalledTimes(1)
     })
+
+    it('should clear async dependencies', async function () {
+        const cleanCallback = jest.fn((service: any) => Promise.resolve())
+
+        // Arrange
+        const container = createContainerBuilder()
+            .addAsyncFactory('hello', {
+                factory: () => Promise.resolve('world'),
+                clear: service =>  cleanCallback(service)
+            }, LifeCycle.Singleton)
+            .build()
+
+        // Act
+        // Force the container to create the service
+        await container.getAsync('hello')
+        await container.clear()
+
+        // Assert
+        expect(cleanCallback).toBeCalledTimes(1)
+    })
 })
 
