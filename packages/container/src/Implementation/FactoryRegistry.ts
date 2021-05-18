@@ -1,23 +1,27 @@
-import {SyncServiceFactory, ServiceKey, SyncServiceFactoryOptions, AsyncServiceFactoryOptions} from '../Interfaces'
+import {
+    SyncServiceFactory,
+    ServiceKey,
+    SyncServiceFactoryOptions,
+    AsyncServiceFactoryOptions
+} from '../Interfaces'
 
 export abstract class FactoryRegistry {
-    constructor(protected readonly factoriesMap: Map<ServiceKey, SyncServiceFactoryOptions<unknown> | AsyncServiceFactoryOptions<unknown>>) {
-    }
+    constructor(protected readonly factoriesMap: Map<ServiceKey, SyncServiceFactoryOptions<unknown> | AsyncServiceFactoryOptions<unknown>>) {}
 
-    abstract getFactory<TService>(serviceKey: ServiceKey): SyncServiceFactory<TService> | undefined;
+    abstract getFactory<TService>(serviceKey: ServiceKey): SyncServiceFactory<TService> | AsyncServiceFactoryOptions<TService> | undefined;
     abstract clear(): Promise<void>
 
     has = (serviceKey: ServiceKey) => this.factoriesMap.has(serviceKey)
 }
 
 class TransientFactoryRegistry extends FactoryRegistry {
-    getFactory<TService>(serviceKey: ServiceKey): SyncServiceFactory<TService> | undefined {
+    getFactory<TService>(serviceKey: ServiceKey): SyncServiceFactory<TService> | AsyncServiceFactoryOptions<TService> | undefined {
         const factory = this.factoriesMap.get(serviceKey)
 
         if (!factory)
             return undefined
 
-        return factory.factory as SyncServiceFactory<TService>
+        return factory.factory as (SyncServiceFactory<TService> | AsyncServiceFactoryOptions<TService>)
     }
 
     clear(): Promise<void> {
@@ -31,7 +35,7 @@ class SingletonFactoryRegistry extends FactoryRegistry {
     private readonly resolvedSingletons: ResolvedServicesMap =
         new Map<ServiceKey, unknown>()
 
-    wrapFactory(key: ServiceKey, options: SyncServiceFactoryOptions<unknown> | AsyncServiceFactoryOptions<unknown>): SyncServiceFactory<unknown> {
+    wrapFactory(key: ServiceKey, options: SyncServiceFactoryOptions<unknown> | AsyncServiceFactoryOptions<unknown>): SyncServiceFactory<unknown> | AsyncServiceFactoryOptions<unknown> {
         return container => {
             if (!this.resolvedSingletons.has(key)) {
                 const { factory } = options
@@ -44,13 +48,13 @@ class SingletonFactoryRegistry extends FactoryRegistry {
         }
     }
 
-    getFactory<TService>(serviceKey: ServiceKey): SyncServiceFactory<TService> | undefined {
+    getFactory<TService>(serviceKey: ServiceKey): SyncServiceFactory<TService> | AsyncServiceFactoryOptions<TService> | undefined {
         const factory = this.factoriesMap.get(serviceKey)
 
         if (!factory)
             return undefined
 
-        return this.wrapFactory(serviceKey, factory) as SyncServiceFactory<TService>
+        return this.wrapFactory(serviceKey, factory) as (SyncServiceFactory<TService> | AsyncServiceFactoryOptions<TService>)
     }
 
     async clear(): Promise<void> {
