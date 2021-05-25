@@ -1,47 +1,4 @@
-import {
-    AsyncServiceProviderInterface,
-    createContainerBuilder,
-    LifeCycle,
-    ServiceKey,
-    ServiceNotFoundError,
-    SyncServiceProviderInterface
-} from '../src'
-
-const isAsyncServiceProvider = (something: unknown): something is AsyncServiceProviderInterface =>
-    // @ts-ignore
-    typeof something === 'object' && typeof something?.getAsync === 'function'
-        // @ts-ignore
-        && typeof something?.hasAsync === 'function'
-
-function provideSync<TService> (factory: (...args: any[]) => TService, servicesKeys: ServiceKey[]) {
-    return function (provider: SyncServiceProviderInterface) {
-        const factoryArguments = servicesKeys.map(key => {
-            if (provider.has(key)) {
-                return provider.get(key)
-            } else {
-                throw new ServiceNotFoundError(key)
-            }
-        })
-
-        return factory(...factoryArguments)
-    }
-}
-
-function provideAsync<TService> (factory: (...args: any[]) => TService, servicesKeys: ServiceKey[]) {
-    return async function (provider: TService extends Promise<any> ? AsyncServiceProviderInterface : SyncServiceProviderInterface) {
-        const factoryArguments = await Promise.all(servicesKeys.map(key => {
-            if (isAsyncServiceProvider(provider) && provider.hasAsync(key)) {
-                return provider.getAsync(key)
-            } else if (provider.has(key)) {
-                return Promise.resolve(provider.get(key))
-            } else {
-                return Promise.reject(new ServiceNotFoundError(key))
-            }
-        }))
-
-        return factory(...factoryArguments)
-    }
-}
+import {createContainerBuilder, LifeCycle, provideAsync, provideSync, ServiceNotFoundError} from '../src'
 
 
 describe('facilitate factory creation by using a factory extension', function () {
