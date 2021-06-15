@@ -206,6 +206,51 @@ export interface AsyncServiceProviderInterface extends SyncServiceProviderInterf
 > This provider interface will possibly be replaced by a proxy system
 > that allows object destructuring.
 
+## Simplifying factories
+
+__This feature is part of the beta version (`npm i @random-ci/container@beta`__).
+
+As your services have more and more dependencies your factories
+will get heavier since we need to call `get` and `getAsync`.
+
+```typescript
+import {createContainerBuilder, LifeCycle} from '@random-di/container'
+
+const containerBuilder = createContainerBuilder()
+
+containerBuilder.addAsyncFactory('a', async () => 'a', LifeCycle.Transient)
+containerBuilder.addAsyncFactory('b', async provider => {
+    const a = await provider.getAsync('a')
+    return a + 'b'
+}, LifeCycle.Transient)
+containerBuilder.addAsyncFactory('c', async provider => {
+    const a = await provider.getAsync('a')
+    const b = await provider.getAsync('b')
+    return a + b + 'c'
+}, LifeCycle.Transient)
+```
+
+To keep your factories short, you can use a helper which will perform
+those `provider.getAsync` calls.
+
+```typescript
+import {createContainerBuilder, provideAsync, LifeCycle} from '@random-di/container'
+
+const containerBuilder = createContainerBuilder()
+
+containerBuilder.addAsyncFactory('a', async () => 'a', LifeCycle.Transient)
+containerBuilder.addAsyncFactory(
+    'b',
+    provideAsync((a: string) => a + 'b', [ 'a' ]),
+    LifeCycle.Transient
+)
+containerBuilder.addAsyncFactory(
+    'c',
+    provideAsync((a: string, b: string) => a + b + 'c', [ 'a', 'b' ]),
+    LifeCycle.Transient
+)
+```
+
 ## Service loaders
 
 When bootstrapping your container you can end up with a huge file 
