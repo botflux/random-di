@@ -6,7 +6,6 @@ import {
     SyncServiceFactory,
     ServiceKey,
     AsyncServiceFactory,
-    ServiceFactory,
     ServiceAlreadyRegisteredError,
     ServiceNotFoundError,
     ServiceLoaderInterface, AsyncServiceProviderInterface, SyncServiceProviderInterface,
