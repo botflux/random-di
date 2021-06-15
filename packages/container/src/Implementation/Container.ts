@@ -1,20 +1,18 @@
 import {
+    AsyncServiceFactory,
+    AsyncServiceProviderInterface,
     ContainerBuilderInterface,
     ContainerInterface,
     LifeCycle,
-    ServiceConstructor,
-    SyncServiceFactory,
-    ServiceKey,
-    AsyncServiceFactory,
     ServiceAlreadyRegisteredError,
+    ServiceConstructor,
+    ServiceKey,
+    ServiceLoaderInterface,
     ServiceNotFoundError,
-    ServiceLoaderInterface, AsyncServiceProviderInterface, SyncServiceProviderInterface,
+    SyncServiceFactory,
+    SyncServiceProviderInterface,
 } from '../Interfaces'
-import {
-    createSingletonFactoryRegistry,
-    createTransientFactoryRegistry,
-    FactoryRegistry
-} from './FactoryRegistry'
+import {createSingletonFactoryRegistry, createTransientFactoryRegistry, FactoryRegistry} from './FactoryRegistry'
 import {createAsyncServiceProvider, createSyncServiceProvider} from './ServiceProvider'
 
 class Container implements ContainerInterface {
@@ -92,7 +90,7 @@ class ContainerBuilder implements ContainerBuilderInterface {
         options.loaders.forEach(loader => loader(this))
     }
 
-    addFactory<TService>(key: ServiceKey, factory: SyncServiceFactory<TService>, lifeCycle: LifeCycle): this {
+    addFactory<TService>(key: ServiceKey, factory: SyncServiceFactory<TService>, lifeCycle: LifeCycle = LifeCycle.Singleton): this {
         if (this.isAlreadyRegistered(key))
             throw new ServiceAlreadyRegisteredError(key)
 
@@ -113,12 +111,12 @@ class ContainerBuilder implements ContainerBuilderInterface {
         )
     }
 
-    addConstructor<TConstructor>(key: ServiceKey, constructor: ServiceConstructor<TConstructor>, lifeCycle: LifeCycle): this {
+    addConstructor<TConstructor>(key: ServiceKey, constructor: ServiceConstructor<TConstructor>, lifeCycle: LifeCycle = LifeCycle.Singleton): this {
         this.syncFactories.get(lifeCycle)?.set(key, container => new constructor(container))
         return this
     }
 
-    addAsyncFactory<TService>(key: ServiceKey, factory: AsyncServiceFactory<Promise<TService>>, lifeCycle: LifeCycle): this {
+    addAsyncFactory<TService>(key: ServiceKey, factory: AsyncServiceFactory<Promise<TService>>, lifeCycle: LifeCycle = LifeCycle.Singleton): this {
         if (this.isAlreadyRegistered(key))
             throw new ServiceAlreadyRegisteredError(key)
 
