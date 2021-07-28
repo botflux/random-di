@@ -2,19 +2,21 @@ import { ServiceKey } from "../../src"
 
 type Seconds = number
 
-type ValidateCachedServiceCallback<T> = (service: T) => boolean
-type SingletonLifeCycle<T> = { type: 'Singleton', onRetrieve: ValidateCachedServiceCallback<T> }
+type Unpromisify<T> = T extends Promise<infer U> ? U : T
+
+type InvalidateCachedSingleton<T> = (service: T) => boolean
+type SingletonLifeCycle<T> = { type: 'Singleton', onRetrieve: InvalidateCachedSingleton<Unpromisify<T>> }
 type SemiTransientLifeCycle = { type: 'SemiTransient', timeBetweenRefresh: Seconds }
 
 type LifeCycleKind<T> = 'Transient' | 'Singleton' | SemiTransientLifeCycle | SingletonLifeCycle<T>
 
 export const LifeCycle = {
     Transient: 'Transient' as LifeCycleKind<unknown>,
-    Singleton: { type: 'Singleton', onRetrieve: () => true } as LifeCycleKind<unknown>,
+    Singleton: { type: 'Singleton', onRetrieve: () => false } as LifeCycleKind<unknown>,
 
     newSemiTransient: (timeBetweenRefresh: Seconds): LifeCycleKind<unknown> => ({ type: 'SemiTransient', timeBetweenRefresh }),
 
-    newSingleton: <T>(onRetrieve: ValidateCachedServiceCallback<T>): LifeCycleKind<T> => ({
+    newSingleton: <T>(onRetrieve: InvalidateCachedSingleton<Unpromisify<T>>): LifeCycleKind<T> => ({
         type: 'Singleton',
         onRetrieve
     })
@@ -34,15 +36,26 @@ class ServiceStorage implements ServiceStorageInterface {
         private readonly semiTransientMap: Map<ServiceKey, { lastRefreshTime: Date, value: any }> = new Map()
     ) {}
 
+    private reloadCachedSingleton<T> (lifeCycle: SingletonLifeCycle<T>, func: () => T, singleton: T): T {
+        if (singleton instanceof Promise) {
+            return singleton
+                .then(innerSingleton => [innerSingleton, lifeCycle.onRetrieve(innerSingleton)])
+                .then(([innerSingleton, isInvalidate]) => isInvalidate ? func() : innerSingleton) as unknown as T
+        } else {
+            const isInvalid = lifeCycle.onRetrieve(singleton as Unpromisify<T>)
+            return isInvalid ? func() : singleton
+        }
+    }
+
     getOrInstantiate<T>(identifier: ServiceKey, lifeCycle: LifeCycleKind<T>, func: () => T, now?: Date): T {
         if (isAltSingleton(lifeCycle)) {
             const cachedResult = this.singletonMap.get(identifier)
 
             const isCached = cachedResult !== null && cachedResult !== undefined
-            const isCacheResultValid = isCached && lifeCycle.onRetrieve(cachedResult)
+            // const isCacheResultValid = isCached && lifeCycle.onRetrieve(cachedResult)
 
-            const reloadedCachedResult = isCached && !isCacheResultValid
-                ? func()
+            const reloadedCachedResult = isCached
+                ? this.reloadCachedSingleton(lifeCycle, func, cachedResult)
                 : cachedResult
 
             const result = reloadedCachedResult ?? func()
@@ -128,10 +141,10 @@ describe('service lifecycle management', () => {
         expect(service2).toBe(0)
     })
 
-    it('should re-instantiate a singleton if the invalidate predicate returns true', function () {
+    it('should re-instantiate a singleton if the invalidate predicate returns false', function () {
         // Arrange
         let i = 0
-        const lifeCycle = LifeCycle.newSingleton<number>(n => n === 2)
+        const lifeCycle = LifeCycle.newSingleton<number>(n => n !== 2)
         const serviceStorage = createServiceStorage()
 
         // Act
@@ -274,5 +287,43 @@ describe('service lifecycle management', () => {
         await expect(service1).resolves.toBe(0)
         await expect(service2).resolves.toBe(0)
         await expect(service3).resolves.toBe(1)
+    })
+
+    it('should re-instantiate singleton service if an invalid predicate returns false', async () => {
+        // Arrange
+        let i = 0
+        const lifeCycle = LifeCycle.newSingleton(n => n !== 2)
+        const serviceStorage = createServiceStorage()
+
+        // Act
+        const service1 = serviceStorage.getOrInstantiate(
+            'my-service',
+            lifeCycle,
+            () => Promise.resolve(i++)
+        )
+
+        const service2 = serviceStorage.getOrInstantiate(
+            'my-service',
+            lifeCycle,
+            () => Promise.resolve(i++)
+        )
+
+        const service3 = serviceStorage.getOrInstantiate(
+            'my-service',
+            lifeCycle,
+            () => Promise.resolve(i++)
+        )
+
+        const service4 = serviceStorage.getOrInstantiate(
+            'my-service',
+            lifeCycle,
+            () => Promise.resolve(i++)
+        )
+
+        // Assert
+        await expect(service1).resolves.toBe(0)
+        await expect(service2).resolves.toBe(1)
+        await expect(service3).resolves.toBe(2)
+        await expect(service4).resolves.toBe(2)
     })
 })
