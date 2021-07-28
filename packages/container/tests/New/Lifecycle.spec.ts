@@ -1,18 +1,28 @@
 import { ServiceKey } from "../../src"
 
 type Seconds = number
+
+type ValidateCachedServiceCallback<T> = (service: T) => boolean
+type SingletonLifeCycle<T> = { type: 'Singleton', onRetrieve: ValidateCachedServiceCallback<T> }
 type SemiTransientLifeCycle = { type: 'SemiTransient', timeBetweenRefresh: Seconds }
-type LifeCycleKind = 'Transient' | 'Singleton' | SemiTransientLifeCycle
+
+type LifeCycleKind<T> = 'Transient' | 'Singleton' | SemiTransientLifeCycle | SingletonLifeCycle<T>
 
 export const LifeCycle = {
-    Transient: 'Transient' as LifeCycleKind,
-    Singleton: 'Singleton' as LifeCycleKind,
-    
-    newSemiTransient: (timeBetweenRefresh: Seconds): LifeCycleKind => ({ type: 'SemiTransient', timeBetweenRefresh })
+    Transient: 'Transient' as LifeCycleKind<unknown>,
+    Singleton: { type: 'Singleton', onRetrieve: () => true } as LifeCycleKind<unknown>,
+
+    newSemiTransient: (timeBetweenRefresh: Seconds): LifeCycleKind<unknown> => ({ type: 'SemiTransient', timeBetweenRefresh }),
+
+    newSingleton: <T>(onRetrieve: ValidateCachedServiceCallback<T>): LifeCycleKind<T> => ({
+        type: 'Singleton',
+        onRetrieve
+    })
 }
 
-const isSingleton = (lifeCycle: LifeCycleKind): lifeCycle is 'Singleton' => lifeCycle === 'Singleton'
-const isSemiTransient = (lifeCycle: LifeCycleKind): lifeCycle is SemiTransientLifeCycle => typeof lifeCycle === 'object' && lifeCycle.type === 'SemiTransient'
+const isSingleton = (lifeCycle: LifeCycleKind<any>): lifeCycle is 'Singleton' => lifeCycle === 'Singleton'
+const isAltSingleton = (lifeCycle: LifeCycleKind<any>): lifeCycle is SingletonLifeCycle<any> => typeof lifeCycle === 'object' && lifeCycle.type === 'Singleton'
+const isSemiTransient = (lifeCycle: LifeCycleKind<any>): lifeCycle is SemiTransientLifeCycle => typeof lifeCycle === 'object' && lifeCycle.type === 'SemiTransient'
 
 export interface ServiceStorageInterface {
     getOrInstantiate<T> (identifier: ServiceKey, lifeCycle: any, func: () => T, now?: Date): T
@@ -24,7 +34,22 @@ class ServiceStorage implements ServiceStorageInterface {
         private readonly semiTransientMap: Map<ServiceKey, { lastRefreshTime: Date, value: any }> = new Map()
     ) {}
 
-    getOrInstantiate<T>(identifier: ServiceKey, lifeCycle: LifeCycleKind, func: () => T, now?: Date): T {
+    getOrInstantiate<T>(identifier: ServiceKey, lifeCycle: LifeCycleKind<T>, func: () => T, now?: Date): T {
+        if (isAltSingleton(lifeCycle)) {
+            const cachedResult = this.singletonMap.get(identifier)
+
+            const isCached = cachedResult !== null && cachedResult !== undefined
+            const isCacheResultValid = isCached && lifeCycle.onRetrieve(cachedResult)
+
+            const reloadedCachedResult = isCached && !isCacheResultValid
+                ? func()
+                : cachedResult
+
+            const result = reloadedCachedResult ?? func()
+            this.singletonMap.set(identifier, result)
+            return result
+        }
+
         if (isSingleton(lifeCycle)) {
             const cachedResult = this.singletonMap.get(identifier)
             const result = cachedResult ?? func()
@@ -103,6 +128,30 @@ describe('service lifecycle management', () => {
         expect(service2).toBe(0)
     })
 
+    it('should re-instantiate a singleton if the invalidate predicate returns true', function () {
+        // Arrange
+        let i = 0
+        const lifeCycle = LifeCycle.newSingleton<number>(n => n === 2)
+        const serviceStorage = createServiceStorage()
+
+        // Act
+        const service1 = serviceStorage.getOrInstantiate(
+            'my-service',
+            lifeCycle,
+            () => i++
+        )
+
+        const service2 = serviceStorage.getOrInstantiate(
+            'my-service',
+            lifeCycle,
+            () => i++
+        )
+
+        // Assert
+        expect(service1).toBe(0)
+        expect(service2).toBe(1)
+    })
+
     it('should instantiate semi-transient one time for a given time', () => {
         // Arrange
         let i = 0
@@ -120,14 +169,14 @@ describe('service lifecycle management', () => {
             () => i++,
             t0
         )
-        
+
         const service2 = serviceStorage.getOrInstantiate(
             'my-service',
             lifeCycle,
             () => i++,
             t1
         )
-        
+
         const service3 = serviceStorage.getOrInstantiate(
             'my-service',
             lifeCycle,
@@ -206,14 +255,14 @@ describe('service lifecycle management', () => {
             () => Promise.resolve(i++),
             t0
         )
-        
+
         const service2 = serviceStorage.getOrInstantiate(
             'my-service',
             lifeCycle,
             () => Promise.resolve(i++),
             t1
         )
-        
+
         const service3 = serviceStorage.getOrInstantiate(
             'my-service',
             lifeCycle,
