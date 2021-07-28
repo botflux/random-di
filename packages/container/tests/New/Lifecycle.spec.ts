@@ -5,20 +5,22 @@ type Seconds = number
 type Unpromisify<T> = T extends Promise<infer U> ? U : T
 
 type InvalidateCachedSingleton<T> = (service: T) => boolean
-type SingletonLifeCycle<T> = { type: 'Singleton', onRetrieve: InvalidateCachedSingleton<Unpromisify<T>> }
+type RefreshCachedSingleton<T> = (service: T) => T
+type SingletonLifeCycle<T> = { type: 'Singleton', invalidate: InvalidateCachedSingleton<Unpromisify<T>>, refresh?: RefreshCachedSingleton<Unpromisify<T>> }
 type SemiTransientLifeCycle = { type: 'SemiTransient', timeBetweenRefresh: Seconds }
 
 type LifeCycleKind<T> = 'Transient' | SemiTransientLifeCycle | SingletonLifeCycle<T>
 
 export const LifeCycle = {
     Transient: 'Transient' as LifeCycleKind<unknown>,
-    Singleton: { type: 'Singleton', onRetrieve: () => false } as LifeCycleKind<unknown>,
+    Singleton: { type: 'Singleton', invalidate: () => false, refresh: undefined } as LifeCycleKind<unknown>,
 
     newSemiTransient: (timeBetweenRefresh: Seconds): LifeCycleKind<unknown> => ({ type: 'SemiTransient', timeBetweenRefresh }),
 
-    newSingleton: <T>(onRetrieve: InvalidateCachedSingleton<Unpromisify<T>>): LifeCycleKind<T> => ({
+    newSingleton: <T>(invalidate: InvalidateCachedSingleton<Unpromisify<T>>, refresh?: RefreshCachedSingleton<Unpromisify<T>>): LifeCycleKind<T> => ({
         type: 'Singleton',
-        onRetrieve
+        invalidate,
+        refresh
     })
 }
 
@@ -36,13 +38,18 @@ class ServiceStorage implements ServiceStorageInterface {
     ) {}
 
     private reloadCachedSingleton<T> (lifeCycle: SingletonLifeCycle<T>, func: () => T, singleton: T): T {
+        const refreshSingleton = lifeCycle.refresh
+            ? lifeCycle.refresh
+            : () => func()
+
         if (singleton instanceof Promise) {
             return singleton
-                .then(innerSingleton => [innerSingleton, lifeCycle.onRetrieve(innerSingleton)])
-                .then(([innerSingleton, isInvalidate]) => isInvalidate ? func() : innerSingleton) as unknown as T
+                .then(innerSingleton => [innerSingleton, lifeCycle.invalidate(innerSingleton)])
+                .then(([innerSingleton, isInvalidate]) => isInvalidate ? refreshSingleton(innerSingleton) : innerSingleton) as unknown as T
         } else {
-            const isInvalid = lifeCycle.onRetrieve(singleton as Unpromisify<T>)
-            return isInvalid ? func() : singleton
+            const isInvalid = lifeCycle.invalidate(singleton as Unpromisify<T>)
+            // @ts-ignore
+            return (isInvalid ? refreshSingleton(singleton) : singleton)
         }
     }
 
@@ -154,6 +161,40 @@ describe('service lifecycle management', () => {
         // Assert
         expect(service1).toBe(0)
         expect(service2).toBe(1)
+    })
+
+    it('should use a callback to repair invalidate singleton instance', function () {
+        // Arrange
+        let i = 0
+        const lifeCycle = LifeCycle.newSingleton(
+            service => service !== 1,
+            service => 3
+        )
+        const serviceStorage = createServiceStorage()
+
+        // Act
+        const service1 = serviceStorage.getOrInstantiate(
+            'my-service',
+            lifeCycle,
+            () => i++
+        )
+
+        const service2 = serviceStorage.getOrInstantiate(
+            'my-service',
+            lifeCycle,
+            () => i++
+        )
+
+        const service3 = serviceStorage.getOrInstantiate(
+            'my-service',
+            lifeCycle,
+            () => i++
+        )
+
+        // Assert
+        expect(service1).toBe(0)
+        expect(service2).toBe(3)
+        expect(service3).toBe(3)
     })
 
     it('should instantiate semi-transient one time for a given time', () => {
