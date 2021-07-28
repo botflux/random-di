@@ -8,7 +8,7 @@ type InvalidateCachedSingleton<T> = (service: T) => boolean
 type SingletonLifeCycle<T> = { type: 'Singleton', onRetrieve: InvalidateCachedSingleton<Unpromisify<T>> }
 type SemiTransientLifeCycle = { type: 'SemiTransient', timeBetweenRefresh: Seconds }
 
-type LifeCycleKind<T> = 'Transient' | 'Singleton' | SemiTransientLifeCycle | SingletonLifeCycle<T>
+type LifeCycleKind<T> = 'Transient' | SemiTransientLifeCycle | SingletonLifeCycle<T>
 
 export const LifeCycle = {
     Transient: 'Transient' as LifeCycleKind<unknown>,
@@ -22,7 +22,6 @@ export const LifeCycle = {
     })
 }
 
-const isSingleton = (lifeCycle: LifeCycleKind<any>): lifeCycle is 'Singleton' => lifeCycle === 'Singleton'
 const isAltSingleton = (lifeCycle: LifeCycleKind<any>): lifeCycle is SingletonLifeCycle<any> => typeof lifeCycle === 'object' && lifeCycle.type === 'Singleton'
 const isSemiTransient = (lifeCycle: LifeCycleKind<any>): lifeCycle is SemiTransientLifeCycle => typeof lifeCycle === 'object' && lifeCycle.type === 'SemiTransient'
 
@@ -59,14 +58,6 @@ class ServiceStorage implements ServiceStorageInterface {
                 : cachedResult
 
             const result = reloadedCachedResult ?? func()
-            this.singletonMap.set(identifier, result)
-            return result
-        }
-
-        if (isSingleton(lifeCycle)) {
-            const cachedResult = this.singletonMap.get(identifier)
-            const result = cachedResult ?? func()
-
             this.singletonMap.set(identifier, result)
             return result
         }
