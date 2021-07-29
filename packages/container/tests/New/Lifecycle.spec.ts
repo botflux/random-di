@@ -1,4 +1,5 @@
 import { ServiceKey } from "../../src"
+import {DbConnection, HttpService} from '../Services'
 
 /**
  * Represents time in seconds.
@@ -29,7 +30,7 @@ type InvalidateCachedSingleton<T> = (service: T) => boolean
  * A function that refresh a singleton.
  * E.g reconnect a database connection.
  */
-type RefreshCachedSingleton<T> = (service: T) => T
+type RefreshCachedSingleton<T> = (service: T) => T | Promise<T>
 
 /**
  * Represents a singleton lifecycle.
@@ -125,7 +126,7 @@ export interface ServiceStorageInterface {
      * @param func
      * @param now
      */
-    getOrInstantiate<T> (identifier: ServiceKey, lifeCycle: any, func: () => T, now?: Date): T
+    getOrInstantiate<T> (identifier: ServiceKey, lifeCycle: LifeCycleKind<T>, func: () => T, now?: Date): T
 }
 
 /**
@@ -202,84 +203,110 @@ const createServiceStorage = (): ServiceStorageInterface => new ServiceStorage()
 describe('service lifecycle management', () => {
     it('should instantiate transient for each request', () => {
         // Arrange
-        let i = 0
         const lifeCycle = LifeCycle.Transient
+        const factory = () => new HttpService()
         const serviceStorage = createServiceStorage()
 
         // Act
         const service1 = serviceStorage.getOrInstantiate(
             'my-service',
             lifeCycle,
-            () => i++
+            factory
         )
 
         const service2 = serviceStorage.getOrInstantiate(
             'my-service',
             lifeCycle,
-            () => i++
+            factory
         )
 
         // Assert
-        expect(service1).toBe(0)
-        expect(service2).toBe(1)
+        expect(service1).toBeInstanceOf(HttpService)
+        expect(service2).toBeInstanceOf(HttpService)
+        expect(service1).not.toBe(service2)
     })
 
     it('should instantiate singleton one time for all request', () => {
         // Arrange
-        let i = 0
         const lifeCycle = LifeCycle.Singleton
+        const factory = () => new HttpService()
         const serviceStorage = createServiceStorage()
 
         // Act
         const service1 = serviceStorage.getOrInstantiate(
             'my-service',
             lifeCycle,
-            () => i++
+            factory
         )
 
         const service2 = serviceStorage.getOrInstantiate(
             'my-service',
             lifeCycle,
-            () => i++
+            factory
         )
 
         // Assert
-        expect(service1).toBe(0)
-        expect(service2).toBe(0)
+        expect(service1).toBeInstanceOf(HttpService)
+        expect(service2).toBeInstanceOf(HttpService)
+        expect(service1).toBe(service2)
     })
 
     it('should re-instantiate a singleton if the invalidate predicate returns true', function () {
         // Arrange
-        let i = 0
-        const lifeCycle = LifeCycle.newSingleton<number>({
-            invalidate: n => n !== 2
+        const lifeCycle = LifeCycle.newSingleton<DbConnection>({
+            invalidate: service => !service.isConnected()
         })
+
+        const factory = jest.fn(() => {
+            const dbConnection = new DbConnection()
+
+            dbConnection.isConnected = jest.fn()
+                .mockReturnValueOnce(false)
+
+            return dbConnection
+        })
+
         const serviceStorage = createServiceStorage()
 
         // Act
         const service1 = serviceStorage.getOrInstantiate(
             'my-service',
             lifeCycle,
-            () => i++
+            factory
         )
 
         const service2 = serviceStorage.getOrInstantiate(
             'my-service',
             lifeCycle,
-            () => i++
+            factory
         )
 
         // Assert
-        expect(service1).toBe(0)
-        expect(service2).toBe(1)
+        expect(service1).toBeInstanceOf(DbConnection)
+        expect(service2).toBeInstanceOf(DbConnection)
+        expect(factory).toBeCalledTimes(2)
     })
 
     it('should use a callback to repair invalidate singleton instance', function () {
         // Arrange
-        let i = 0
-        const lifeCycle = LifeCycle.newSingleton({
-            invalidate: service => service !== 1,
-            refresh: service => 3
+        const factory = jest.fn(() => {
+            const dbConnection = new DbConnection()
+
+            dbConnection.isConnected = jest.fn()
+                .mockReturnValueOnce(true)
+                .mockReturnValueOnce(false)
+                .mockReturnValueOnce(false)
+
+            dbConnection.connect = jest.fn(dbConnection.connect)
+
+            return dbConnection
+        })
+        const lifeCycle = LifeCycle.newSingleton<DbConnection>({
+            invalidate: service => service.isConnected(),
+            refresh: service => {
+                service.connect()
+                return service
+            }
         })
         const serviceStorage = createServiceStorage()
 
@@ -287,30 +314,36 @@ describe('service lifecycle management', () => {
         const service1 = serviceStorage.getOrInstantiate(
             'my-service',
             lifeCycle,
-            () => i++
+            factory
         )
 
         const service2 = serviceStorage.getOrInstantiate(
             'my-service',
             lifeCycle,
-            () => i++
+            factory
         )
 
         const service3 = serviceStorage.getOrInstantiate(
             'my-service',
             lifeCycle,
-            () => i++
+            factory
         )
 
         // Assert
-        expect(service1).toBe(0)
-        expect(service2).toBe(3)
-        expect(service3).toBe(3)
+        expect(service1).toBeInstanceOf(DbConnection)
+        expect(service2).toBeInstanceOf(DbConnection)
+        expect(service3).toBeInstanceOf(DbConnection)
+
+        expect(service1).toBe(service2)
+        expect(service2).toBe(service3)
+
+        expect(service1.connect).toBeCalledTimes(1)
+        expect(service1.isConnected).toBeCalledTimes(2)
     })
 
     it('should instantiate semi-transient one time for a given time', () => {
         // Arrange
-        let i = 0
+        const factory = jest.fn(() => new HttpService())
         const lifeCycle = LifeCycle.newSemiTransient({
             timeBetweenRefresh: 240
         })
@@ -324,33 +357,37 @@ describe('service lifecycle management', () => {
         const service1 = serviceStorage.getOrInstantiate(
             'my-service',
             lifeCycle,
-            () => i++,
+            factory,
             t0
         )
 
         const service2 = serviceStorage.getOrInstantiate(
             'my-service',
             lifeCycle,
-            () => i++,
+            factory,
             t1
         )
 
         const service3 = serviceStorage.getOrInstantiate(
             'my-service',
             lifeCycle,
-            () => i++,
+            factory,
             t2
         )
 
         // Assert
-        expect(service1).toBe(0)
-        expect(service2).toBe(0)
-        expect(service3).toBe(1)
+        expect(service1).toBeInstanceOf(HttpService)
+        expect(service2).toBeInstanceOf(HttpService)
+        expect(service3).toBeInstanceOf(HttpService)
+
+        expect(service1).toBe(service2)
+        expect(service1).not.toBe(service3)
+        expect(service2).not.toBe(service3)
     })
 
     it('should instantiate transient promise each time', async function () {
         // Arrange
-        let i = 0
+        const factory = jest.fn(async () => new HttpService())
         const lifeCycle = LifeCycle.Transient
         const serviceStorage = createServiceStorage()
 
@@ -358,23 +395,23 @@ describe('service lifecycle management', () => {
         const service1 = serviceStorage.getOrInstantiate(
             'my-service',
             lifeCycle,
-            () => Promise.resolve(i++)
+            factory
         )
 
         const service2 = serviceStorage.getOrInstantiate(
             'my-service',
             lifeCycle,
-            () => Promise.resolve(i++)
+            factory
         )
 
         // Assert
-        await expect(service1).resolves.toBe(0)
-        await expect(service2).resolves.toBe(1)
+        expect(await service1).not.toBe(await service2)
+        expect(factory).toBeCalledTimes(2)
     })
 
     it('should instantiate singleton promise one time for all', async function () {
         // Arrange
-        let i = 0
+        const factory = jest.fn(async () => new DbConnection())
         const lifeCycle = LifeCycle.Singleton
         const serviceStorage = createServiceStorage()
 
@@ -382,23 +419,23 @@ describe('service lifecycle management', () => {
         const service1 = serviceStorage.getOrInstantiate(
             'my-service',
             lifeCycle,
-            () => Promise.resolve(i++)
+            factory
         )
 
         const service2 = serviceStorage.getOrInstantiate(
             'my-service',
             lifeCycle,
-            () => Promise.resolve(i++)
+            factory
         )
 
         // Assert
-        await expect(service1).resolves.toBe(0)
-        await expect(service2).resolves.toBe(0)
+        expect(await service1).toBe(await service2)
+        expect(factory).toBeCalledTimes(1)
     })
 
     it('should instantiate semi-transient promise one time for a given time', async () => {
         // Arrange
-        let i = 0
+        const factory = jest.fn(async () => new HttpService())
         const lifeCycle = LifeCycle.newSemiTransient({
             timeBetweenRefresh: 240
         })
@@ -412,76 +449,104 @@ describe('service lifecycle management', () => {
         const service1 = serviceStorage.getOrInstantiate(
             'my-service',
             lifeCycle,
-            () => Promise.resolve(i++),
+            factory,
             t0
         )
 
         const service2 = serviceStorage.getOrInstantiate(
             'my-service',
             lifeCycle,
-            () => Promise.resolve(i++),
+            factory,
             t1
         )
 
         const service3 = serviceStorage.getOrInstantiate(
             'my-service',
             lifeCycle,
-            () => Promise.resolve(i++),
+            factory,
             t2
         )
 
         // Assert
-        await expect(service1).resolves.toBe(0)
-        await expect(service2).resolves.toBe(0)
-        await expect(service3).resolves.toBe(1)
+        expect(await service1).toBe(await service2)
+        expect(await service2).not.toBe(await service3)
+        expect(await service1).not.toBe(await service3)
+        expect(factory).toBeCalledTimes(2)
     })
 
     it('should re-instantiate singleton service if an invalid predicate returns true', async () => {
         // Arrange
-        let i = 0
-        const lifeCycle = LifeCycle.newSingleton({
-            invalidate: n => n !== 2
+        const isConnected = jest.fn()
+            .mockReturnValueOnce(false)
+            .mockReturnValueOnce(false)
+            .mockReturnValueOnce(true)
+
+        const factory = jest.fn(async () => {
+            const connection = new DbConnection()
+
+            connection.isConnected = isConnected
+            return connection
         })
+
+        const lifeCycle = LifeCycle.newSingleton<Promise<DbConnection>>({
+            invalidate: s => !s.isConnected()
+        })
+
         const serviceStorage = createServiceStorage()
 
         // Act
         const service1 = serviceStorage.getOrInstantiate(
             'my-service',
             lifeCycle,
-            () => Promise.resolve(i++)
+            factory
         )
 
         const service2 = serviceStorage.getOrInstantiate(
             'my-service',
             lifeCycle,
-            () => Promise.resolve(i++)
+            factory
         )
 
         const service3 = serviceStorage.getOrInstantiate(
             'my-service',
             lifeCycle,
-            () => Promise.resolve(i++)
+            factory
         )
 
         const service4 = serviceStorage.getOrInstantiate(
             'my-service',
             lifeCycle,
-            () => Promise.resolve(i++)
+            factory
         )
 
         // Assert
-        await expect(service1).resolves.toBe(0)
-        await expect(service2).resolves.toBe(1)
-        await expect(service3).resolves.toBe(2)
-        await expect(service4).resolves.toBe(2)
+        expect(await service1).not.toBe(await service2)
+        expect(await service2).not.toBe(await service3)
+        expect(await service1).not.toBe(await service3)
+        expect(await service3).toBe(await service4)
+        expect(factory).toBeCalledTimes(3)
+        expect(isConnected).toBeCalledTimes(3)
     })
 
     it('should unwrap the promise if the refresh callback returns a promise', async function () {
         // Arrange
-        let i = 0
-        const lifeCycle = LifeCycle.newSingleton({
-            invalidate: n => n !== 2,
-            refresh: n => Promise.resolve(2)
+        const factory = jest.fn(async () => {
+            const connection = new DbConnection()
+
+            connection.isConnected = jest.fn()
+                .mockReturnValueOnce(true)
+                .mockReturnValueOnce(false)
+                .mockReturnValueOnce(true)
+            connection.connect = jest.fn(connection.connect)
+
+            return connection
+        })
+        const lifeCycle = LifeCycle.newSingleton<Promise<DbConnection>>({
+            invalidate: service => !service.isConnected(),
+            refresh: service => {
+                service.connect()
+                return service
+            }
         })
         const serviceStorage = createServiceStorage()
 
@@ -489,31 +554,35 @@ describe('service lifecycle management', () => {
         const service1 = serviceStorage.getOrInstantiate(
             'my-service',
             lifeCycle,
-            () => Promise.resolve(i++)
+            factory
         )
 
         const service2 = serviceStorage.getOrInstantiate(
             'my-service',
             lifeCycle,
-            () => Promise.resolve(i++)
+            factory
         )
 
         const service3 = serviceStorage.getOrInstantiate(
             'my-service',
             lifeCycle,
-            () => Promise.resolve(i++)
+            factory
         )
 
         const service4 = serviceStorage.getOrInstantiate(
             'my-service',
             lifeCycle,
-            () => Promise.resolve(i++)
+            factory
         )
 
         // Assert
-        await expect(service1).resolves.toBe(0)
-        await expect(service2).resolves.toBe(2)
-        await expect(service3).resolves.toBe(2)
-        await expect(service4).resolves.toBe(2)
+        expect(await service1).toBe(await service2)
+        expect(await service2).toBe(await service3)
+        expect(await service3).toBe(await service4)
+        expect(await service4).toBe(await service1)
+
+        expect(factory).toBeCalledTimes(1)
+        expect((await service1).isConnected).toBeCalledTimes(3)
+        expect((await service1).connect).toBeCalledTimes(1)
     })
 })
