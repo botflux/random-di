@@ -11,16 +11,33 @@ type SemiTransientLifeCycle = { type: 'SemiTransient', timeBetweenRefresh: Secon
 
 type LifeCycleKind<T> = 'Transient' | SemiTransientLifeCycle | SingletonLifeCycle<T>
 
+const defaultSingleton: SingletonLifeCycle<any> = {
+    type: 'Singleton',
+    invalidate: () => false,
+    refresh: undefined
+}
+
 export const LifeCycle = {
     Transient: 'Transient' as LifeCycleKind<unknown>,
     Singleton: { type: 'Singleton', invalidate: () => false, refresh: undefined } as LifeCycleKind<unknown>,
 
     newSemiTransient: (timeBetweenRefresh: Seconds): LifeCycleKind<unknown> => ({ type: 'SemiTransient', timeBetweenRefresh }),
 
+    /**
+     * @deprecated
+     * @param invalidate
+     * @param refresh
+     */
     newSingleton: <T>(invalidate: InvalidateCachedSingleton<Unpromisify<T>>, refresh?: RefreshCachedSingleton<Unpromisify<T>>): LifeCycleKind<T> => ({
         type: 'Singleton',
         invalidate,
         refresh
+    }),
+
+    newSingletonAlt: <T>(lifeCycle: Partial<Omit<SingletonLifeCycle<T>, 'type'>>): LifeCycleKind<T> => ({
+        ...defaultSingleton,
+        type: 'Singleton',
+        ...lifeCycle
     })
 }
 
@@ -142,7 +159,9 @@ describe('service lifecycle management', () => {
     it('should re-instantiate a singleton if the invalidate predicate returns true', function () {
         // Arrange
         let i = 0
-        const lifeCycle = LifeCycle.newSingleton<number>(n => n !== 2)
+        const lifeCycle = LifeCycle.newSingletonAlt<number>({
+            invalidate: n => n !== 2
+        })
         const serviceStorage = createServiceStorage()
 
         // Act
@@ -324,7 +343,9 @@ describe('service lifecycle management', () => {
     it('should re-instantiate singleton service if an invalid predicate returns true', async () => {
         // Arrange
         let i = 0
-        const lifeCycle = LifeCycle.newSingleton(n => n !== 2)
+        const lifeCycle = LifeCycle.newSingletonAlt({
+            invalidate: n => n !== 2
+        })
         const serviceStorage = createServiceStorage()
 
         // Act
@@ -362,10 +383,10 @@ describe('service lifecycle management', () => {
     it('should unwrap the promise if the refresh callback returns a promise', async function () {
         // Arrange
         let i = 0
-        const lifeCycle = LifeCycle.newSingleton(
-            n => n !== 2,
-            n => Promise.resolve(2)
-        )
+        const lifeCycle = LifeCycle.newSingletonAlt({
+            invalidate: n => n !== 2,
+            refresh: n => Promise.resolve(2)
+        })
         const serviceStorage = createServiceStorage()
 
         // Act
