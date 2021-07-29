@@ -17,11 +17,19 @@ const defaultSingleton: SingletonLifeCycle<any> = {
     refresh: undefined
 }
 
+const defaultSemiTransient: SemiTransientLifeCycle = {
+    type: 'SemiTransient',
+    timeBetweenRefresh: 0
+}
+
 export const LifeCycle = {
     Transient: 'Transient' as LifeCycleKind<unknown>,
     Singleton: defaultSingleton as LifeCycleKind<unknown>,
 
-    newSemiTransient: (timeBetweenRefresh: Seconds): LifeCycleKind<unknown> => ({ type: 'SemiTransient', timeBetweenRefresh }),
+    newSemiTransient: (lifeCycle: Partial<Omit<SemiTransientLifeCycle, 'type'>>): LifeCycleKind<any> => ({
+        ...defaultSemiTransient,
+        ...lifeCycle
+    }),
 
     newSingleton: <T>(lifeCycle: Partial<Omit<SingletonLifeCycle<T>, 'type'>>): LifeCycleKind<T> => ({
         ...defaultSingleton,
@@ -208,7 +216,9 @@ describe('service lifecycle management', () => {
     it('should instantiate semi-transient one time for a given time', () => {
         // Arrange
         let i = 0
-        const lifeCycle = LifeCycle.newSemiTransient(240)
+        const lifeCycle = LifeCycle.newSemiTransient({
+            timeBetweenRefresh: 240
+        })
         const serviceStorage = createServiceStorage()
 
         const t0 = new Date('2021-05-23T10:25:00Z')
@@ -294,7 +304,9 @@ describe('service lifecycle management', () => {
     it('should instantiate semi-transient promise one time for a given time', async () => {
         // Arrange
         let i = 0
-        const lifeCycle = LifeCycle.newSemiTransient(240)
+        const lifeCycle = LifeCycle.newSemiTransient({
+            timeBetweenRefresh: 240
+        })
         const serviceStorage = createServiceStorage()
 
         const t0 = new Date('2021-05-23T10:25:00Z')
