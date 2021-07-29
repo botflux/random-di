@@ -40,8 +40,11 @@ export const LifeCycle = {
     newSingleton: createSingleton
 }
 
-const isAltSingleton = (lifeCycle: LifeCycleKind<any>): lifeCycle is SingletonLifeCycle<any> => typeof lifeCycle === 'object' && lifeCycle.type === 'Singleton'
-const isSemiTransient = (lifeCycle: LifeCycleKind<any>): lifeCycle is SemiTransientLifeCycle => typeof lifeCycle === 'object' && lifeCycle.type === 'SemiTransient'
+const isSingleton = (lifeCycle: LifeCycleKind<any>): lifeCycle is SingletonLifeCycle<any> =>
+    typeof lifeCycle === 'object' && lifeCycle.type === 'Singleton'
+
+const isSemiTransient = (lifeCycle: LifeCycleKind<any>): lifeCycle is SemiTransientLifeCycle =>
+    typeof lifeCycle === 'object' && lifeCycle.type === 'SemiTransient'
 
 export interface ServiceStorageInterface {
     getOrInstantiate<T> (identifier: ServiceKey, lifeCycle: any, func: () => T, now?: Date): T
@@ -70,7 +73,7 @@ class ServiceStorage implements ServiceStorageInterface {
     }
 
     getOrInstantiate<T>(identifier: ServiceKey, lifeCycle: LifeCycleKind<T>, func: () => T, now?: Date): T {
-        if (isAltSingleton(lifeCycle)) {
+        if (isSingleton(lifeCycle)) {
             const cachedResult = this.singletonMap.get(identifier)
 
             const isCached = cachedResult !== null && cachedResult !== undefined
