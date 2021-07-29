@@ -344,6 +344,8 @@ describe('service lifecycle management', () => {
             expect(service1.connect).toBeCalledTimes(1)
             expect(service1.isConnected).toBeCalledTimes(2)
         })
+
+        it.todo('should destroy the cached singleton instances when the service storage is destroyed')
     })
 
     describe('semi-transient lifecycle', function () {
@@ -390,6 +392,7 @@ describe('service lifecycle management', () => {
             expect(service1).not.toBe(service3)
             expect(service2).not.toBe(service3)
         })
+        it.todo('should destroy the cached semi-transient instances when the service storage is destroyed')
     })
 
     describe('transient lifecycle with async service', function () {
@@ -554,6 +557,8 @@ describe('service lifecycle management', () => {
             expect((await service1).connect).toBeCalledTimes(1)
         })
         it.todo('should repair the async service with a sync refresh callback')
+        it.todo('should destroy the cached singleton async instances when the service storage is destroyed')
+        it.todo('should destroy the cached singleton async instances with an async destroy callback')
     })
 
     describe('semi-transient lifecycle with async service', function () {
@@ -597,5 +602,7 @@ describe('service lifecycle management', () => {
             expect(await service1).not.toBe(await service3)
             expect(factory).toBeCalledTimes(2)
         })
+        it.todo('should destroy the cached semi-transient async instances when the service storage is destroy')
+        it.todo('should destroy the cached semi-transient async instances with an async destroy callback')
     })
 })
