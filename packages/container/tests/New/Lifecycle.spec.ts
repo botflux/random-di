@@ -139,7 +139,7 @@ describe('service lifecycle management', () => {
         expect(service2).toBe(0)
     })
 
-    it('should re-instantiate a singleton if the invalidate predicate returns false', function () {
+    it('should re-instantiate a singleton if the invalidate predicate returns true', function () {
         // Arrange
         let i = 0
         const lifeCycle = LifeCycle.newSingleton<number>(n => n !== 2)
@@ -321,7 +321,7 @@ describe('service lifecycle management', () => {
         await expect(service3).resolves.toBe(1)
     })
 
-    it('should re-instantiate singleton service if an invalid predicate returns false', async () => {
+    it('should re-instantiate singleton service if an invalid predicate returns true', async () => {
         // Arrange
         let i = 0
         const lifeCycle = LifeCycle.newSingleton(n => n !== 2)
