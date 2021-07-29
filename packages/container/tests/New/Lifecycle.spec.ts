@@ -358,4 +358,45 @@ describe('service lifecycle management', () => {
         await expect(service3).resolves.toBe(2)
         await expect(service4).resolves.toBe(2)
     })
+
+    it('should unwrap the promise if the refresh callback returns a promise', async function () {
+        // Arrange
+        let i = 0
+        const lifeCycle = LifeCycle.newSingleton(
+            n => n !== 2,
+            n => Promise.resolve(2)
+        )
+        const serviceStorage = createServiceStorage()
+
+        // Act
+        const service1 = serviceStorage.getOrInstantiate(
+            'my-service',
+            lifeCycle,
+            () => Promise.resolve(i++)
+        )
+
+        const service2 = serviceStorage.getOrInstantiate(
+            'my-service',
+            lifeCycle,
+            () => Promise.resolve(i++)
+        )
+
+        const service3 = serviceStorage.getOrInstantiate(
+            'my-service',
+            lifeCycle,
+            () => Promise.resolve(i++)
+        )
+
+        const service4 = serviceStorage.getOrInstantiate(
+            'my-service',
+            lifeCycle,
+            () => Promise.resolve(i++)
+        )
+
+        // Assert
+        await expect(service1).resolves.toBe(0)
+        await expect(service2).resolves.toBe(2)
+        await expect(service3).resolves.toBe(2)
+        await expect(service4).resolves.toBe(2)
+    })
 })
