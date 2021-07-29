@@ -1,32 +1,95 @@
 import { ServiceKey } from "../../src"
 
+/**
+ * Represents time in seconds.
+ */
 type Seconds = number
 
+/**
+ * Returns the type wrapped in the given promise.
+ * If T is not a promise, T is returned.
+ *
+ * @example
+ * ```typescript
+ * type A = Promise<number>
+ * type B = number
+ *
+ * type C = Unpromisify<A> // number
+ * type D = Unpromisify<B> // number
+ * ```
+ */
 type Unpromisify<T> = T extends Promise<infer U> ? U : T
 
+/**
+ * A predicate to know if the given service if valid or not.
+ */
 type InvalidateCachedSingleton<T> = (service: T) => boolean
+
+/**
+ * A function that refresh a singleton.
+ * E.g reconnect a database connection.
+ */
 type RefreshCachedSingleton<T> = (service: T) => T
+
+/**
+ * Represents a singleton lifecycle.
+ * A singleton is created only one time.
+ *
+ * You can renew a singleton instance by using the invalidate predicate.
+ * If this predicate returns true then the service factory will be called and the current instance will be thrown.
+ *
+ * You can also provide a custom refresh function to re-new the singleton service.
+ */
 type SingletonLifeCycle<T> = { type: 'Singleton', invalidate: InvalidateCachedSingleton<Unpromisify<T>>, refresh?: RefreshCachedSingleton<Unpromisify<T>> }
+
+/**
+ * Represents a semi transient lifecycle.
+ * A semi-transient is created one time for a given time.
+ *
+ * You can specify the lifetime of a semi-transient by using the timeBetweenRefresh parameter.
+ */
 type SemiTransientLifeCycle = { type: 'SemiTransient', timeBetweenRefresh: Seconds }
 
+/**
+ * All possible service lifecycle.
+ */
 type LifeCycleKind<T> = 'Transient' | SemiTransientLifeCycle | SingletonLifeCycle<T>
 
+/**
+ * Default singleton parameters used by the singleton factory.
+ */
 const defaultSingleton: SingletonLifeCycle<any> = {
     type: 'Singleton',
     invalidate: () => false,
     refresh: undefined
 }
 
+/**
+ * Default semi-transient parameters used by the semi-transient factory.
+ */
 const defaultSemiTransient: SemiTransientLifeCycle = {
     type: 'SemiTransient',
     timeBetweenRefresh: 0
 }
 
+/**
+ * Create a new semi transient lifecycle.
+ *
+ * @param lifeCycle
+ * @see SemiTransientLifeCycle
+ */
 const createSemiTransient = (lifeCycle: Partial<Omit<SemiTransientLifeCycle, 'type'>>): LifeCycleKind<any> => ({
     ...defaultSemiTransient,
     ...lifeCycle
 })
 
+/**
+ * Create a new singleton lifecycle.
+ *
+ * @param lifeCycle
+ * @see SingletonLifeCycle
+ * @see LifeCycle.Singleton
+ */
 const createSingleton = <T>(lifeCycle: Partial<Omit<SingletonLifeCycle<T>, 'type'>>): LifeCycleKind<T> => ({
     ...defaultSingleton,
     ...lifeCycle
@@ -40,22 +103,49 @@ export const LifeCycle = {
     newSingleton: createSingleton
 }
 
+
 const isSingleton = (lifeCycle: LifeCycleKind<any>): lifeCycle is SingletonLifeCycle<any> =>
     typeof lifeCycle === 'object' && lifeCycle.type === 'Singleton'
 
 const isSemiTransient = (lifeCycle: LifeCycleKind<any>): lifeCycle is SemiTransientLifeCycle =>
     typeof lifeCycle === 'object' && lifeCycle.type === 'SemiTransient'
 
+/**
+ * Instantiate and store services.
+ *
+ * @see ServiceStorageInterface#getOrInstantiate
+ * @see createServiceStorage
+ */
 export interface ServiceStorageInterface {
+    /**
+     * Instantiate a service or retrieve it from cache.
+     *
+     * @param identifier
+     * @param lifeCycle
+     * @param func
+     * @param now
+     */
     getOrInstantiate<T> (identifier: ServiceKey, lifeCycle: any, func: () => T, now?: Date): T
 }
 
+/**
+ * A service storage using a Map to store services instances.
+ */
 class ServiceStorage implements ServiceStorageInterface {
     constructor(
         private readonly singletonMap: Map<ServiceKey, any> = new Map(),
         private readonly semiTransientMap: Map<ServiceKey, { lastRefreshTime: Date, value: any }> = new Map()
     ) {}
 
+    /**
+     * Reload cached singleton instances.
+     * This method helps to handle async service.
+     *
+     * @param lifeCycle
+     * @param func
+     * @param singleton
+     * @private
+     */
     private reloadCachedSingleton<T> (lifeCycle: SingletonLifeCycle<T>, func: () => T, singleton: T): T {
         const refreshSingleton = lifeCycle.refresh
             ? lifeCycle.refresh
