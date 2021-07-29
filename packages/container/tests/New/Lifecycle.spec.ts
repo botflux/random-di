@@ -19,20 +19,9 @@ const defaultSingleton: SingletonLifeCycle<any> = {
 
 export const LifeCycle = {
     Transient: 'Transient' as LifeCycleKind<unknown>,
-    Singleton: { type: 'Singleton', invalidate: () => false, refresh: undefined } as LifeCycleKind<unknown>,
+    Singleton: defaultSingleton as LifeCycleKind<unknown>,
 
     newSemiTransient: (timeBetweenRefresh: Seconds): LifeCycleKind<unknown> => ({ type: 'SemiTransient', timeBetweenRefresh }),
-
-    /**
-     * @deprecated
-     * @param invalidate
-     * @param refresh
-     */
-    newSingleton: <T>(invalidate: InvalidateCachedSingleton<Unpromisify<T>>, refresh?: RefreshCachedSingleton<Unpromisify<T>>): LifeCycleKind<T> => ({
-        type: 'Singleton',
-        invalidate,
-        refresh
-    }),
 
     newSingletonAlt: <T>(lifeCycle: Partial<Omit<SingletonLifeCycle<T>, 'type'>>): LifeCycleKind<T> => ({
         ...defaultSingleton,
@@ -185,10 +174,10 @@ describe('service lifecycle management', () => {
     it('should use a callback to repair invalidate singleton instance', function () {
         // Arrange
         let i = 0
-        const lifeCycle = LifeCycle.newSingleton(
-            service => service !== 1,
-            service => 3
-        )
+        const lifeCycle = LifeCycle.newSingletonAlt({
+            invalidate: service => service !== 1,
+            refresh: service => 3
+        })
         const serviceStorage = createServiceStorage()
 
         // Act
