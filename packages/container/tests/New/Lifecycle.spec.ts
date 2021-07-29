@@ -22,20 +22,22 @@ const defaultSemiTransient: SemiTransientLifeCycle = {
     timeBetweenRefresh: 0
 }
 
+const createSemiTransient = (lifeCycle: Partial<Omit<SemiTransientLifeCycle, 'type'>>): LifeCycleKind<any> => ({
+    ...defaultSemiTransient,
+    ...lifeCycle
+})
+
+const createSingleton = <T>(lifeCycle: Partial<Omit<SingletonLifeCycle<T>, 'type'>>): LifeCycleKind<T> => ({
+    ...defaultSingleton,
+    ...lifeCycle
+})
+
 export const LifeCycle = {
     Transient: 'Transient' as LifeCycleKind<unknown>,
     Singleton: defaultSingleton as LifeCycleKind<unknown>,
 
-    newSemiTransient: (lifeCycle: Partial<Omit<SemiTransientLifeCycle, 'type'>>): LifeCycleKind<any> => ({
-        ...defaultSemiTransient,
-        ...lifeCycle
-    }),
-
-    newSingleton: <T>(lifeCycle: Partial<Omit<SingletonLifeCycle<T>, 'type'>>): LifeCycleKind<T> => ({
-        ...defaultSingleton,
-        type: 'Singleton',
-        ...lifeCycle
-    })
+    newSemiTransient: createSemiTransient,
+    newSingleton: createSingleton
 }
 
 const isAltSingleton = (lifeCycle: LifeCycleKind<any>): lifeCycle is SingletonLifeCycle<any> => typeof lifeCycle === 'object' && lifeCycle.type === 'Singleton'
