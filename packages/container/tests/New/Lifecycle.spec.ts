@@ -23,7 +23,7 @@ export const LifeCycle = {
 
     newSemiTransient: (timeBetweenRefresh: Seconds): LifeCycleKind<unknown> => ({ type: 'SemiTransient', timeBetweenRefresh }),
 
-    newSingletonAlt: <T>(lifeCycle: Partial<Omit<SingletonLifeCycle<T>, 'type'>>): LifeCycleKind<T> => ({
+    newSingleton: <T>(lifeCycle: Partial<Omit<SingletonLifeCycle<T>, 'type'>>): LifeCycleKind<T> => ({
         ...defaultSingleton,
         type: 'Singleton',
         ...lifeCycle
@@ -148,7 +148,7 @@ describe('service lifecycle management', () => {
     it('should re-instantiate a singleton if the invalidate predicate returns true', function () {
         // Arrange
         let i = 0
-        const lifeCycle = LifeCycle.newSingletonAlt<number>({
+        const lifeCycle = LifeCycle.newSingleton<number>({
             invalidate: n => n !== 2
         })
         const serviceStorage = createServiceStorage()
@@ -174,7 +174,7 @@ describe('service lifecycle management', () => {
     it('should use a callback to repair invalidate singleton instance', function () {
         // Arrange
         let i = 0
-        const lifeCycle = LifeCycle.newSingletonAlt({
+        const lifeCycle = LifeCycle.newSingleton({
             invalidate: service => service !== 1,
             refresh: service => 3
         })
@@ -332,7 +332,7 @@ describe('service lifecycle management', () => {
     it('should re-instantiate singleton service if an invalid predicate returns true', async () => {
         // Arrange
         let i = 0
-        const lifeCycle = LifeCycle.newSingletonAlt({
+        const lifeCycle = LifeCycle.newSingleton({
             invalidate: n => n !== 2
         })
         const serviceStorage = createServiceStorage()
@@ -372,7 +372,7 @@ describe('service lifecycle management', () => {
     it('should unwrap the promise if the refresh callback returns a promise', async function () {
         // Arrange
         let i = 0
-        const lifeCycle = LifeCycle.newSingletonAlt({
+        const lifeCycle = LifeCycle.newSingleton({
             invalidate: n => n !== 2,
             refresh: n => Promise.resolve(2)
         })
