@@ -10,4 +10,8 @@ export class DbConnection {
     connect(): void {
         this._isConnected = true
     }
+
+    disconnect(): void {
+        this._isConnected = false
+    }
 }

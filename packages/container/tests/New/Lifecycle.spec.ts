@@ -33,6 +33,12 @@ type InvalidateCachedSingleton<T> = (service: T) => boolean
 type RefreshCachedSingleton<T> = (service: T) => T | Promise<T>
 
 /**
+ * A function that destroy a cached singleton instance.
+ * E.g disconnect from a database.
+ */
+type DestroyCachedSingleton<T> = (service: T) => void
+
+/**
  * Represents a singleton lifecycle.
  * A singleton is created only one time.
  *
@@ -41,7 +47,12 @@ type RefreshCachedSingleton<T> = (service: T) => T | Promise<T>
  *
  * You can also provide a custom refresh function to re-new the singleton service.
  */
-type SingletonLifeCycle<T> = { type: 'Singleton', invalidate: InvalidateCachedSingleton<Unpromisify<T>>, refresh?: RefreshCachedSingleton<Unpromisify<T>> }
+type SingletonLifeCycle<T> = { 
+    type: 'Singleton', 
+    invalidate: InvalidateCachedSingleton<Unpromisify<T>>, 
+    refresh?: RefreshCachedSingleton<Unpromisify<T>>,
+    destroy: DestroyCachedSingleton<Unpromisify<T>>
+}
 
 /**
  * Represents a semi transient lifecycle.
@@ -62,7 +73,8 @@ type LifeCycleKind<T> = 'Transient' | SemiTransientLifeCycle | SingletonLifeCycl
 const defaultSingleton: SingletonLifeCycle<any> = {
     type: 'Singleton',
     invalidate: () => false,
-    refresh: undefined
+    refresh: undefined,
+    destroy: () => undefined
 }
 
 /**
@@ -127,6 +139,11 @@ export interface ServiceStorageInterface {
      * @param now
      */
     getOrInstantiate<T> (identifier: ServiceKey, lifeCycle: LifeCycleKind<T>, func: () => T, now?: Date): T
+
+    /**
+     * Destroy all stored services instances.
+     */
+    destroyAll(): void
 }
 
 /**
@@ -134,7 +151,7 @@ export interface ServiceStorageInterface {
  */
 class ServiceStorage implements ServiceStorageInterface {
     constructor(
-        private readonly singletonMap: Map<ServiceKey, any> = new Map(),
+        private readonly singletonMap: Map<ServiceKey, { value: any, destroy: DestroyCachedSingleton<any> }> = new Map(),
         private readonly semiTransientMap: Map<ServiceKey, { lastRefreshTime: Date, value: any }> = new Map()
     ) {}
 
@@ -171,11 +188,11 @@ class ServiceStorage implements ServiceStorageInterface {
             // const isCacheResultValid = isCached && lifeCycle.onRetrieve(cachedResult)
 
             const reloadedCachedResult = isCached
-                ? this.reloadCachedSingleton(lifeCycle, func, cachedResult)
+                ? this.reloadCachedSingleton(lifeCycle, func, cachedResult.value)
                 : cachedResult
 
             const result = reloadedCachedResult ?? func()
-            this.singletonMap.set(identifier, result)
+            this.singletonMap.set(identifier, { value: result, destroy: lifeCycle.destroy })
             return result
         }
 
@@ -195,6 +212,14 @@ class ServiceStorage implements ServiceStorageInterface {
         }
 
         return func()
+    }
+
+    destroyAll(): void {
+        const storedServicesEntries = [...this.singletonMap.entries()]
+        
+        for (const [ , { destroy, value } ] of storedServicesEntries) {
+            destroy(value)
+        }
     }
 }
 
@@ -345,7 +370,29 @@ describe('service lifecycle management', () => {
             expect(service1.isConnected).toBeCalledTimes(2)
         })
 
-        it.todo('should destroy the cached singleton instances when the service storage is destroyed')
+        it('should destroy the cached singleton instances when the service storage is destroyed', async function () {
+            // Arrange
+
+            const factory = () => {
+                const connection = new DbConnection()
+                connection.disconnect = jest.fn(connection.disconnect)
+                return connection
+            }
+
+            const lifeCycle = LifeCycle.newSingleton<DbConnection>({
+                destroy: connection => connection.disconnect()
+            })
+
+            const serviceStorage = createServiceStorage()
+
+            // Act
+            const service = serviceStorage.getOrInstantiate('connection', lifeCycle, factory)
+            await serviceStorage.destroyAll()
+
+            // Assert
+            expect(service.disconnect).toBeCalledTimes(1)
+            expect(service._isConnected).toBe(false)
+        })
     })
 
     describe('semi-transient lifecycle', function () {
