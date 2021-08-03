@@ -705,7 +705,63 @@ describe('service lifecycle management', () => {
             expect((await service1).isConnected).toBeCalledTimes(3)
             expect((await service1).connect).toBeCalledTimes(1)
         })
-        it.todo('should repair the async service with a sync refresh callback')
+        it('should repair the async service with an async refresh callback', async function () {
+            // Arrange
+            const factory = jest.fn(async () => {
+                const connection = new DbConnection()
+
+                connection.isConnected = jest.fn()
+                    .mockReturnValueOnce(true)
+                    .mockReturnValueOnce(false)
+                    .mockReturnValueOnce(true)
+                connection.connect = jest.fn(connection.connect)
+
+                return connection
+            })
+            const lifeCycle = LifeCycle.newSingleton<Promise<DbConnection>>({
+                invalidate: service => !service.isConnected(),
+                refresh: service => new Promise(resolve => {
+                    service.connect()
+                    return resolve(service)
+                })
+            })
+            const serviceStorage = createServiceStorage()
+
+            // Act
+            const service1 = serviceStorage.getOrInstantiate(
+                'my-service',
+                lifeCycle,
+                factory
+            )
+
+            const service2 = serviceStorage.getOrInstantiate(
+                'my-service',
+                lifeCycle,
+                factory
+            )
+
+            const service3 = serviceStorage.getOrInstantiate(
+                'my-service',
+                lifeCycle,
+                factory
+            )
+
+            const service4 = serviceStorage.getOrInstantiate(
+                'my-service',
+                lifeCycle,
+                factory
+            )
+
+            // Assert
+            expect(await service1).toBe(await service2)
+            expect(await service2).toBe(await service3)
+            expect(await service3).toBe(await service4)
+            expect(await service4).toBe(await service1)
+
+            expect(factory).toBeCalledTimes(1)
+            expect((await service1).isConnected).toBeCalledTimes(3)
+            expect((await service1).connect).toBeCalledTimes(1)
+        })
         it.todo('should destroy the cached singleton async instances when the service storage is destroyed')
         it.todo('should destroy the cached singleton async instances with an async destroy callback')
     })
