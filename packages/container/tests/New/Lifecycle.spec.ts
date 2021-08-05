@@ -89,9 +89,13 @@ const isSingleton = (lifeCycle: LifeCycleKind<any>): lifeCycle is SingletonLifeC
 
 /**
  * Instantiate and store services.
- *
+ * 
+ * Classes implementing this interface are responsible for
+ * instantiating and storing services.
+ * 
  * @see ServiceStorageInterface#getOrInstantiate
  * @see createServiceStorage
+ * @see LifeCycle
  */
 export interface ServiceStorageInterface {
     /**
@@ -181,6 +185,11 @@ class ServiceStorage implements ServiceStorageInterface {
     }
 }
 
+/**
+ * Create a new service storage.
+ * 
+ * @see ServiceStorageInterface
+ */
 const createServiceStorage = (): ServiceStorageInterface => new ServiceStorage()
 
 describe('service lifecycle management', () => {
