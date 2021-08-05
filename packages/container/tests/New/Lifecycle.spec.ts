@@ -2,11 +2,6 @@ import { ServiceKey } from "../../src"
 import {DbConnection, HttpService} from '../Services'
 
 /**
- * Represents time in seconds.
- */
-type Seconds = number
-
-/**
  * Returns the type wrapped in the given promise.
  * If T is not a promise, T is returned.
  *
@@ -35,8 +30,6 @@ type RefreshCachedSingleton<T> = (service: T) => T | Promise<T>
 /**
  * A function that destroy a cached singleton instance.
  * E.g disconnect from a database.
- * 
- * @deprecated This type should be renamed.
  */
 type DestroyCachedSingleton<T> = (service: T) => void | Promise<void>
 
@@ -57,21 +50,9 @@ type SingletonLifeCycle<T> = {
 }
 
 /**
- * Represents a semi transient lifecycle.
- * A semi-transient is created one time for a given time.
- *
- * You can specify the lifetime of a semi-transient by using the timeBetweenRefresh parameter.
- */
-type SemiTransientLifeCycle<T> = { 
-    type: 'SemiTransient', 
-    timeBetweenRefresh: Seconds,
-    destroy: DestroyCachedSingleton<Unpromisify<T>>
-}
-
-/**
  * All possible service lifecycle.
  */
-type LifeCycleKind<T> = 'Transient' | SemiTransientLifeCycle<T> | SingletonLifeCycle<T>
+type LifeCycleKind<T> = 'Transient' | SingletonLifeCycle<T>
 
 /**
  * Default singleton parameters used by the singleton factory.
@@ -82,26 +63,6 @@ const defaultSingleton: SingletonLifeCycle<any> = {
     refresh: undefined,
     destroy: () => undefined
 }
-
-/**
- * Default semi-transient parameters used by the semi-transient factory.
- */
-const defaultSemiTransient: SemiTransientLifeCycle<any> = {
-    type: 'SemiTransient',
-    timeBetweenRefresh: 0,
-    destroy: () => undefined
-}
-
-/**
- * Create a new semi transient lifecycle.
- *
- * @param lifeCycle
- * @see SemiTransientLifeCycle
- */
-const createSemiTransient = <T>(lifeCycle: Partial<Omit<SemiTransientLifeCycle<T>, 'type'>>): LifeCycleKind<any> => ({
-    ...defaultSemiTransient,
-    ...lifeCycle
-})
 
 /**
  * Create a new singleton lifecycle.
@@ -119,16 +80,12 @@ export const LifeCycle = {
     Transient: 'Transient' as LifeCycleKind<unknown>,
     Singleton: defaultSingleton as LifeCycleKind<unknown>,
 
-    newSemiTransient: createSemiTransient,
     newSingleton: createSingleton
 }
 
 
 const isSingleton = (lifeCycle: LifeCycleKind<any>): lifeCycle is SingletonLifeCycle<any> =>
     typeof lifeCycle === 'object' && lifeCycle.type === 'Singleton'
-
-const isSemiTransient = (lifeCycle: LifeCycleKind<any>): lifeCycle is SemiTransientLifeCycle<any> =>
-    typeof lifeCycle === 'object' && lifeCycle.type === 'SemiTransient'
 
 /**
  * Instantiate and store services.
@@ -206,22 +163,6 @@ class ServiceStorage implements ServiceStorageInterface {
             const result = reloadedCachedResult ?? func()
             this.singletonMap.set(identifier, { value: result, destroy: lifeCycle.destroy })
             return result
-        }
-
-        if (isSemiTransient(lifeCycle)) {
-            const localNow = now ?? new Date()
-
-            const cachedResult = this.semiTransientMap.get(identifier)
-            const result = cachedResult ?? { lastRefreshTime: localNow, value: func(), destroy: lifeCycle.destroy }
-
-            const nextRefreshTime = new Date( result.lastRefreshTime.valueOf() + (lifeCycle.timeBetweenRefresh * 1000) )
-
-            const refreshedResult = nextRefreshTime.valueOf() <= localNow.valueOf()
-                ? { lastRefreshTime: localNow, value: func(), destroy: lifeCycle.destroy }
-                : result
-
-            this.semiTransientMap.set(identifier, refreshedResult)
-            return refreshedResult.value
         }
 
         return func()
@@ -434,162 +375,6 @@ describe('service lifecycle management', () => {
             // Assert
             expect(service.disconnect).toBeCalledTimes(1)
             expect(service._isConnected).toBe(false)
-        })
-    })
-
-    describe('semi-transient lifecycle', function () {
-        it('should instantiate semi-transient one time for a given time', () => {
-            // Arrange
-            const factory = jest.fn(() => new HttpService())
-            const lifeCycle = LifeCycle.newSemiTransient({
-                timeBetweenRefresh: 240
-            })
-            const serviceStorage = createServiceStorage()
-
-            const t0 = new Date('2021-05-23T10:25:00Z')
-            const t1 = new Date('2021-05-23T10:26:00Z')
-            const t2 = new Date('2021-05-23T10:29:00Z')
-
-            // Act
-            const service1 = serviceStorage.getOrInstantiate(
-                'my-service',
-                lifeCycle,
-                factory,
-                t0
-            )
-
-            const service2 = serviceStorage.getOrInstantiate(
-                'my-service',
-                lifeCycle,
-                factory,
-                t1
-            )
-
-            const service3 = serviceStorage.getOrInstantiate(
-                'my-service',
-                lifeCycle,
-                factory,
-                t2
-            )
-
-            // Assert
-            expect(service1).toBeInstanceOf(HttpService)
-            expect(service2).toBeInstanceOf(HttpService)
-            expect(service3).toBeInstanceOf(HttpService)
-
-            expect(service1).toBe(service2)
-            expect(service1).not.toBe(service3)
-            expect(service2).not.toBe(service3)
-        })
-        it('should use the destroy callback before re-instantiating semi-transient instance', async function () {
-            // Arrange
-            const factory = jest.fn(() => new HttpService())
-            const destroy = jest.fn()
-            const lifeCycle = LifeCycle.newSemiTransient<HttpService>({
-                timeBetweenRefresh: 240,
-                destroy
-            })
-            const serviceStorage = createServiceStorage()
-
-            const t0 = new Date('2021-05-23T10:25:00Z')
-            const t1 = new Date('2021-05-23T10:26:00Z')
-            const t2 = new Date('2021-05-23T10:29:00Z')
-
-            // Act
-            const service1 = serviceStorage.getOrInstantiate(
-                'my-service',
-                lifeCycle,
-                factory,
-                t0
-            )
-
-            const service2 = serviceStorage.getOrInstantiate(
-                'my-service',
-                lifeCycle,
-                factory,
-                t1
-            )
-
-            const service3 = serviceStorage.getOrInstantiate(
-                'my-service',
-                lifeCycle,
-                factory,
-                t2
-            )
-
-            // Assert
-            expect(service1).toBeInstanceOf(HttpService)
-            expect(service2).toBeInstanceOf(HttpService)
-            expect(service3).toBeInstanceOf(HttpService)
-
-            expect(service1).toBe(service2)
-            expect(service1).not.toBe(service3)
-            expect(service2).not.toBe(service3)
-
-            expect(destroy).toBeCalledTimes(2)
-        })
-        it('should destroy the cached semi-transient instances when the service storage is destroyed', async function () {
-            // Arrange
-            const factory = jest.fn(() => {
-                const connection = new DbConnection()
-                connection.disconnect = jest.fn(connection.disconnect)
-                return connection
-            })
-
-            const now = new Date('2021-09-12T23:45:12.000Z')
-
-            const lifeCycle = LifeCycle.newSemiTransient<DbConnection>({
-                destroy: service => service.disconnect()
-            })
-
-            const serviceStorage = createServiceStorage()
-
-            // Act
-            const service = serviceStorage.getOrInstantiate<DbConnection>(
-                'connection',
-                lifeCycle,
-                factory,
-                now
-            )
-
-            await serviceStorage.destroyAll()
-
-            // Assert
-            expect(service._isConnected).toBe(false)
-            expect(service.disconnect).toBeCalledTimes(1)
-        })
-        it('should destroy the cached semi-transient instances using a async destroy function', async function () {
-            // Arrange
-            const factory = jest.fn(() => {
-                const connection = new DbConnection()
-                connection.disconnect = jest.fn(connection.disconnect)
-                return connection
-            })
-
-            const now = new Date('2021-09-12T23:45:12.000Z')
-
-            const lifeCycle = LifeCycle.newSemiTransient<DbConnection>({
-                destroy: service => new Promise(resolve => {
-                    service.disconnect()
-                    resolve(undefined)
-                })
-            })
-
-            const serviceStorage = createServiceStorage()
-
-            // Act
-            const service = serviceStorage.getOrInstantiate<DbConnection>(
-                'connection',
-                lifeCycle,
-                factory,
-                now
-            )
-
-            await serviceStorage.destroyAll()
-
-            // Assert
-            expect(service._isConnected).toBe(false)
-            expect(service.disconnect).toBeCalledTimes(1)
         })
     })
 
@@ -859,108 +644,6 @@ describe('service lifecycle management', () => {
 
             // Assert
             expect(factory).toBeCalledTimes(1)
-            expect((await service1).disconnect).toBeCalledTimes(1)
-        })
-    })
-
-    describe('semi-transient lifecycle with async service', function () {
-        it('should instantiate semi-transient promise one time for a given time', async () => {
-            // Arrange
-            const factory = jest.fn(async () => new HttpService())
-            const lifeCycle = LifeCycle.newSemiTransient({
-                timeBetweenRefresh: 240
-            })
-            const serviceStorage = createServiceStorage()
-
-            const t0 = new Date('2021-05-23T10:25:00Z')
-            const t1 = new Date('2021-05-23T10:26:00Z')
-            const t2 = new Date('2021-05-23T10:29:00Z')
-
-            // Act
-            const service1 = serviceStorage.getOrInstantiate(
-                'my-service',
-                lifeCycle,
-                factory,
-                t0
-            )
-
-            const service2 = serviceStorage.getOrInstantiate(
-                'my-service',
-                lifeCycle,
-                factory,
-                t1
-            )
-
-            const service3 = serviceStorage.getOrInstantiate(
-                'my-service',
-                lifeCycle,
-                factory,
-                t2
-            )
-
-            // Assert
-            expect(await service1).toBe(await service2)
-            expect(await service2).not.toBe(await service3)
-            expect(await service1).not.toBe(await service3)
-            expect(factory).toBeCalledTimes(2)
-        })
-        it('should destroy the cached semi-transient async instances when the service storage is destroy', async function () {
-            // Arrange
-            const factory = jest.fn(async () => {
-                const connection = new DbConnection()
-
-                connection.disconnect = jest.fn(connection.isConnected)
-
-                return connection
-            })
-            const lifeCycle = LifeCycle.newSemiTransient<Promise<DbConnection>>({
-                timeBetweenRefresh: 240,
-                destroy: connection => connection.disconnect()
-            })
-            const serviceStorage = createServiceStorage()
-
-            const now = new Date('2021-05-23T10:25:00Z')
-
-            // Act
-            const service1 = serviceStorage.getOrInstantiate<Promise<DbConnection>>(
-                'my-service',
-                lifeCycle,
-                factory,
-                now
-            )
-
-            await serviceStorage.destroyAll()
-
-            // Assert
-            expect((await service1).disconnect).toBeCalledTimes(1)
-        })
-        it('should destroy the cached semi-transient async instances with an async destroy callback', async function () {
-            // Arrange
-            const factory = jest.fn(async () => {
-                const connection = new DbConnection()
-                connection.disconnect = jest.fn(connection.isConnected)
-                return connection
-            })
-
-            const lifeCycle = LifeCycle.newSemiTransient<Promise<DbConnection>>({
-                timeBetweenRefresh: 240,
-                destroy: async connection => connection.disconnect()
-            })
-
-            const serviceStorage = createServiceStorage()
-            const now = new Date('2021-05-23T10:25:00Z')
-
-            // Act
-            const service1 = serviceStorage.getOrInstantiate<Promise<DbConnection>>(
-                'my-service',
-                lifeCycle,
-                factory,
-                now
-            )
-
-            await serviceStorage.destroyAll()
-
-            // Assert
             expect((await service1).disconnect).toBeCalledTimes(1)
         })
     })
