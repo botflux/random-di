@@ -215,6 +215,7 @@ class ServiceStorage implements ServiceStorageInterface {
             const result = cachedResult ?? { lastRefreshTime: localNow, value: func(), destroy: lifeCycle.destroy }
 
             const nextRefreshTime = new Date( result.lastRefreshTime.valueOf() + (lifeCycle.timeBetweenRefresh * 1000) )
+
             const refreshedResult = nextRefreshTime.valueOf() <= localNow.valueOf()
                 ? { lastRefreshTime: localNow, value: func(), destroy: lifeCycle.destroy }
                 : result
@@ -233,7 +234,8 @@ class ServiceStorage implements ServiceStorageInterface {
         ]
         
         for (const [ , { destroy, value } ] of storedServicesEntries) {
-            await Promise.resolve(destroy(value))
+            await Promise.resolve(value)
+                .then(instance => destroy(instance))
         }
     }
 }
@@ -478,6 +480,53 @@ describe('service lifecycle management', () => {
             expect(service1).toBe(service2)
             expect(service1).not.toBe(service3)
             expect(service2).not.toBe(service3)
+        })
+        it('should use the destroy callback before re-instantiating semi-transient instance', async function () {
+            // Arrange
+            const factory = jest.fn(() => new HttpService())
+            const destroy = jest.fn()
+            const lifeCycle = LifeCycle.newSemiTransient<HttpService>({
+                timeBetweenRefresh: 240,
+                destroy
+            })
+            const serviceStorage = createServiceStorage()
+
+            const t0 = new Date('2021-05-23T10:25:00Z')
+            const t1 = new Date('2021-05-23T10:26:00Z')
+            const t2 = new Date('2021-05-23T10:29:00Z')
+
+            // Act
+            const service1 = serviceStorage.getOrInstantiate(
+                'my-service',
+                lifeCycle,
+                factory,
+                t0
+            )
+
+            const service2 = serviceStorage.getOrInstantiate(
+                'my-service',
+                lifeCycle,
+                factory,
+                t1
+            )
+
+            const service3 = serviceStorage.getOrInstantiate(
+                'my-service',
+                lifeCycle,
+                factory,
+                t2
+            )
+
+            // Assert
+            expect(service1).toBeInstanceOf(HttpService)
+            expect(service2).toBeInstanceOf(HttpService)
+            expect(service3).toBeInstanceOf(HttpService)
+
+            expect(service1).toBe(service2)
+            expect(service1).not.toBe(service3)
+            expect(service2).not.toBe(service3)
+
+            expect(destroy).toBeCalledTimes(2)
         })
         it('should destroy the cached semi-transient instances when the service storage is destroyed', async function () {
             // Arrange
@@ -762,8 +811,56 @@ describe('service lifecycle management', () => {
             expect((await service1).isConnected).toBeCalledTimes(3)
             expect((await service1).connect).toBeCalledTimes(1)
         })
-        it.todo('should destroy the cached singleton async instances when the service storage is destroyed')
-        it.todo('should destroy the cached singleton async instances with an async destroy callback')
+        it('should destroy the cached singleton async instances when the service storage is destroyed', async function () {
+            // Arrange
+            const factory = jest.fn(async () => {
+                const connection = new DbConnection()
+                connection.disconnect = jest.fn(connection.disconnect)
+                return connection
+            })
+            const lifeCycle = LifeCycle.newSingleton<Promise<DbConnection>>({
+                destroy: connection => connection.disconnect()
+            })
+            const serviceStorage = createServiceStorage()
+
+            // Act
+            const service1 = serviceStorage.getOrInstantiate(
+                'my-service',
+                lifeCycle,
+                factory
+            )
+
+            await serviceStorage.destroyAll()
+
+            // Assert
+            expect(factory).toBeCalledTimes(1)
+            expect((await service1).disconnect).toBeCalledTimes(1)
+        })
+        it('should destroy the cached singleton async instances with an async destroy callback', async function() {
+            // Arrange
+            const factory = jest.fn(async () => {
+                const connection = new DbConnection()
+                connection.disconnect = jest.fn(connection.disconnect)
+                return connection
+            })
+            const lifeCycle = LifeCycle.newSingleton<Promise<DbConnection>>({
+                destroy: async connection => connection.disconnect()
+            })
+            const serviceStorage = createServiceStorage()
+
+            // Act
+            const service1 = serviceStorage.getOrInstantiate(
+                'my-service',
+                lifeCycle,
+                factory
+            )
+
+            await serviceStorage.destroyAll()
+
+            // Assert
+            expect(factory).toBeCalledTimes(1)
+            expect((await service1).disconnect).toBeCalledTimes(1)
+        })
     })
 
     describe('semi-transient lifecycle with async service', function () {
@@ -807,7 +904,64 @@ describe('service lifecycle management', () => {
             expect(await service1).not.toBe(await service3)
             expect(factory).toBeCalledTimes(2)
         })
-        it.todo('should destroy the cached semi-transient async instances when the service storage is destroy')
-        it.todo('should destroy the cached semi-transient async instances with an async destroy callback')
+        it('should destroy the cached semi-transient async instances when the service storage is destroy', async function () {
+            // Arrange
+            const factory = jest.fn(async () => {
+                const connection = new DbConnection()
+
+                connection.disconnect = jest.fn(connection.isConnected)
+
+                return connection
+            })
+            const lifeCycle = LifeCycle.newSemiTransient<Promise<DbConnection>>({
+                timeBetweenRefresh: 240,
+                destroy: connection => connection.disconnect()
+            })
+            const serviceStorage = createServiceStorage()
+
+            const now = new Date('2021-05-23T10:25:00Z')
+
+            // Act
+            const service1 = serviceStorage.getOrInstantiate<Promise<DbConnection>>(
+                'my-service',
+                lifeCycle,
+                factory,
+                now
+            )
+
+            await serviceStorage.destroyAll()
+
+            // Assert
+            expect((await service1).disconnect).toBeCalledTimes(1)
+        })
+        it('should destroy the cached semi-transient async instances with an async destroy callback', async function () {
+            // Arrange
+            const factory = jest.fn(async () => {
+                const connection = new DbConnection()
+                connection.disconnect = jest.fn(connection.isConnected)
+                return connection
+            })
+
+            const lifeCycle = LifeCycle.newSemiTransient<Promise<DbConnection>>({
+                timeBetweenRefresh: 240,
+                destroy: async connection => connection.disconnect()
+            })
+
+            const serviceStorage = createServiceStorage()
+            const now = new Date('2021-05-23T10:25:00Z')
+
+            // Act
+            const service1 = serviceStorage.getOrInstantiate<Promise<DbConnection>>(
+                'my-service',
+                lifeCycle,
+                factory,
+                now
+            )
+
+            await serviceStorage.destroyAll()
+
+            // Assert
+            expect((await service1).disconnect).toBeCalledTimes(1)
+        })
     })
 })
