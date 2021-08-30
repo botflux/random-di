@@ -1,6 +1,6 @@
 import { DbConnection, UserRepository } from "../Services"
 import { LifeCycle, LifeCycleKind } from "./Lifecycle.spec"
-import {DirectedAcyclicGraph, NoNeighbourError} from '../../src/Implementation/DirectedAcyclicGraph'
+import {DirectedAcyclicGraph, NoNeighbourError} from '../../src/DirectedAcyclicGraph'
 
 type ServiceFactory<TService, TArgs extends Array<any>> = (...args: TArgs) => TService
 type Service<TService, TArgs extends Array<any>> = {
