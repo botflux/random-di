@@ -15,3 +15,9 @@ export class DbConnection {
         this._isConnected = false
     }
 }
+
+export class UserRepository {
+    constructor(
+        public readonly dbConnection: DbConnection
+    ) {}
+}

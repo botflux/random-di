@@ -42,9 +42,9 @@ type DestroyCachedSingleton<T> = (service: T) => void | Promise<void>
  *
  * You can also provide a custom refresh function to re-new the singleton service.
  */
-type SingletonLifeCycle<T> = { 
-    type: 'Singleton', 
-    invalidate: InvalidateCachedSingleton<Unpromisify<T>>, 
+type SingletonLifeCycle<T> = {
+    type: 'Singleton',
+    invalidate: InvalidateCachedSingleton<Unpromisify<T>>,
     refresh?: RefreshCachedSingleton<Unpromisify<T>>,
     destroy: DestroyCachedSingleton<Unpromisify<T>>
 }
@@ -52,7 +52,7 @@ type SingletonLifeCycle<T> = {
 /**
  * All possible service lifecycle.
  */
-type LifeCycleKind<T> = 'Transient' | SingletonLifeCycle<T>
+export type LifeCycleKind<T> = 'Transient' | SingletonLifeCycle<T>
 
 /**
  * Default singleton parameters used by the singleton factory.
@@ -77,8 +77,8 @@ const createSingleton = <T>(lifeCycle: Partial<Omit<SingletonLifeCycle<T>, 'type
 })
 
 export const LifeCycle = {
-    Transient: 'Transient' as LifeCycleKind<unknown>,
-    Singleton: defaultSingleton as LifeCycleKind<unknown>,
+    Transient: 'Transient' as LifeCycleKind<any>,
+    Singleton: defaultSingleton as LifeCycleKind<any>,
 
     newSingleton: createSingleton
 }
@@ -89,10 +89,10 @@ const isSingleton = (lifeCycle: LifeCycleKind<any>): lifeCycle is SingletonLifeC
 
 /**
  * Instantiate and store services.
- * 
+ *
  * Classes implementing this interface are responsible for
  * instantiating and storing services.
- * 
+ *
  * @see ServiceStorageInterface#getOrInstantiate
  * @see createServiceStorage
  * @see LifeCycle
@@ -116,8 +116,8 @@ export interface ServiceStorageInterface {
 
 /**
  * Returns true if the passed value is not null nor undefined; otherwise false.
- * 
- * @param v 
+ *
+ * @param v
  */
 const isNotNullNorUndefined = <T> (v: T | undefined | null): v is T =>
     v !== null && v !== undefined
@@ -177,7 +177,7 @@ class ServiceStorage implements ServiceStorageInterface {
             ...this.singletonMap.entries(),
             ...this.semiTransientMap.entries()
         ]
-        
+
         for (const [ , { destroy, value } ] of storedServicesEntries) {
             await Promise.resolve(value)
                 .then(instance => destroy(instance))
@@ -187,7 +187,7 @@ class ServiceStorage implements ServiceStorageInterface {
 
 /**
  * Create a new service storage.
- * 
+ *
  * @see ServiceStorageInterface
  */
 const createServiceStorage = (): ServiceStorageInterface => new ServiceStorage()
