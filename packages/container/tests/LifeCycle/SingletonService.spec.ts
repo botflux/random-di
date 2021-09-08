@@ -5,9 +5,14 @@ type Unpromisify<T> = T extends Promise<infer U> ? U : T
 
 type DefaultServiceFactory = (...params: any[]) => any
 type InvalidateSingletonServiceInstance<Service> = (service: Service) => boolean
+type RepairSingletonServiceInstance<Service> = (service: Service extends Promise<infer InnerService> ? InnerService : Service) => Service extends Promise<infer InnerService>
+    ? InnerService | Promise<InnerService>
+    : Service
+
 type SingletonServiceParameters<ServiceFactory extends DefaultServiceFactory> = {
     factory: ServiceFactory,
-    invalidate?: InvalidateSingletonServiceInstance<Unpromisify<ReturnType<ServiceFactory>>>
+    invalidate?: InvalidateSingletonServiceInstance<Unpromisify<ReturnType<ServiceFactory>>>,
+    repair?: RepairSingletonServiceInstance<ReturnType<ServiceFactory>>
 }
 
 const defaultInvalidateSingletonServiceInstance = (service: any) => false
@@ -26,8 +31,11 @@ class SingletonService<
             innerService => innerService ? invalidate(innerService) : false
         )
 
-        const reInstantiatedService = isInvalidPromise.then(
-            isInvalid => isInvalid ? this.params.factory(...params) : undefined
+        const reInstantiatedService = SyncPromise.all(isInvalidPromise, this.instantiatedService).then(
+            ([isInvalid, instance]) => isInvalid
+                // @ts-ignore
+                ? this.params.repair ? this.params.repair(instance) : this.params.factory(...params)
+                : undefined
         )
 
         const instance = SyncPromise.all(this.instantiatedService, reInstantiatedService).then(
@@ -80,6 +88,32 @@ describe('singleton service lifecycle', function () {
             expect(instance1).toBeInstanceOf(DbConnection)
             expect(instance2).toBeInstanceOf(DbConnection)
         })
+
+        it('should repair the service instead of re-instantiate it if the invalidate callback returns true', function () {
+            // Arrange
+            const serviceFactoryFunction = () => {
+                const dbConnection = new DbConnection()
+                dbConnection._isConnected = false
+                return dbConnection
+            }
+            const singletonService = new SingletonService({
+                factory: serviceFactoryFunction,
+                invalidate: service => !service.isConnected(),
+                repair: service => {
+                    service.connect()
+                    return service
+                }
+            })
+
+            // Act
+            const instance1 = singletonService.retrieve()
+            const instance2 = singletonService.retrieve()
+
+            // Assert
+            expect(instance1).toBe(instance2)
+            expect(instance1).toBeInstanceOf(DbConnection)
+            expect(instance2).toBeInstanceOf(DbConnection)
+        })
     })
 
     describe('singleton lifecycle with async dependencies', function () {
@@ -116,6 +150,32 @@ describe('singleton service lifecycle', function () {
 
             // Assert
             expect(instance1).not.toBe(instance2)
+            expect(instance1).toBeInstanceOf(DbConnection)
+            expect(instance2).toBeInstanceOf(DbConnection)
+        })
+
+        it('should repair the service instead of re-instantiate it if the invalidate callback returns true. With an async service the promise should be unwrapped.', async function () {
+            // Arrange
+            const serviceFactoryFunction = async () => {
+                const dbConnection = new DbConnection()
+                dbConnection._isConnected = false
+                return dbConnection
+            }
+            const singletonService = new SingletonService({
+                factory: serviceFactoryFunction,
+                invalidate: service => !service.isConnected(),
+                repair: async service => {
+                    service.connect()
+                    return service
+                }
+            })
+
+            // Act
+            const instance1 = await singletonService.retrieve()
+            const instance2 = await singletonService.retrieve()
+
+            // Assert
+            expect(instance1).toBe(instance2)
             expect(instance1).toBeInstanceOf(DbConnection)
             expect(instance2).toBeInstanceOf(DbConnection)
         })
