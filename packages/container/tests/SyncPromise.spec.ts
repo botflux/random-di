@@ -7,8 +7,8 @@ describe('sync promise', function () {
         const syncPromise = SyncPromise.from(value)
 
         // Act
-        const doubledValue = syncPromise
-            .then(value => value * 2)
+        const doubledValue = ((syncPromise
+            .then(value => value * 2)) as unknown as SyncPromise<number>)
             .unwrap()
 
         // Assert

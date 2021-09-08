@@ -15,26 +15,30 @@ const defaultInvalidateSingletonServiceInstance = (service: any) => false
 class SingletonService<
     ServiceFactory extends DefaultServiceFactory
 > {
-    private instantiatedService?: ReturnType<ServiceFactory>
+    private instantiatedService: PromiseLike<Unpromisify<ReturnType<ServiceFactory>> | undefined> = SyncPromise.from(undefined)
 
     constructor(private readonly params: SingletonServiceParameters<ServiceFactory>) {}
 
     retrieve(...params: Parameters<ServiceFactory>): ReturnType<ServiceFactory> {
         const invalidate = this.params.invalidate ?? defaultInvalidateSingletonServiceInstance
 
-        const isInvalid = this.instantiatedService
-            ? invalidate(this.instantiatedService)
-            : false
+        const isInvalidPromise = this.instantiatedService.then(
+            innerService => innerService ? invalidate(innerService) : false
+        )
 
-        const reInstantiatedService = isInvalid
-            ? this.params.factory(...params)
-            : undefined
+        const reInstantiatedService = isInvalidPromise.then(
+            isInvalid => isInvalid ? this.params.factory(...params) : undefined
+        )
 
-        const instance = reInstantiatedService ?? this.instantiatedService ?? this.params.factory(...params)
+        const instance = SyncPromise.all(this.instantiatedService, reInstantiatedService).then(
+            ([ instantiated, reInstantiated ]) => reInstantiated ?? instantiated ?? this.params.factory(...params)
+        )
 
         this.instantiatedService = instance
 
-        return instance
+        return instance instanceof SyncPromise
+            ? instance.unwrap()
+            : instance
     }
 }
 
