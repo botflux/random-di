@@ -1,54 +1,5 @@
 import {DbConnection, UserRepository} from '../Services'
-import {SyncPromise} from '../../src/SyncPromise'
-
-type Unpromisify<T> = T extends Promise<infer U> ? U : T
-
-type DefaultServiceFactory = (...params: any[]) => any
-type InvalidateSingletonServiceInstance<Service> = (service: Service) => boolean
-type RepairSingletonServiceInstance<Service> = (service: Service extends Promise<infer InnerService> ? InnerService : Service) => Service extends Promise<infer InnerService>
-    ? InnerService | Promise<InnerService>
-    : Service
-
-type SingletonServiceParameters<ServiceFactory extends DefaultServiceFactory> = {
-    factory: ServiceFactory,
-    invalidate?: InvalidateSingletonServiceInstance<Unpromisify<ReturnType<ServiceFactory>>>,
-    repair?: RepairSingletonServiceInstance<ReturnType<ServiceFactory>>
-}
-
-const defaultInvalidateSingletonServiceInstance = (service: any) => false
-
-class SingletonService<
-    ServiceFactory extends DefaultServiceFactory
-> {
-    private instantiatedService: PromiseLike<Unpromisify<ReturnType<ServiceFactory>> | undefined> = SyncPromise.from(undefined)
-
-    constructor(private readonly params: SingletonServiceParameters<ServiceFactory>) {}
-
-    retrieve(...params: Parameters<ServiceFactory>): ReturnType<ServiceFactory> {
-        const invalidate = this.params.invalidate ?? defaultInvalidateSingletonServiceInstance
-
-        const isInvalidPromise = this.instantiatedService.then(
-            innerService => innerService ? invalidate(innerService) : false
-        )
-
-        const reInstantiatedService = SyncPromise.all(isInvalidPromise, this.instantiatedService).then(
-            ([isInvalid, instance]) => isInvalid
-                // @ts-ignore
-                ? this.params.repair ? this.params.repair(instance) : this.params.factory(...params)
-                : undefined
-        )
-
-        const instance = SyncPromise.all(this.instantiatedService, reInstantiatedService).then(
-            ([ instantiated, reInstantiated ]) => reInstantiated ?? instantiated ?? this.params.factory(...params)
-        )
-
-        this.instantiatedService = instance
-
-        return instance instanceof SyncPromise
-            ? instance.unwrap()
-            : instance
-    }
-}
+import {SingletonService} from '../../src/LifeCycle/SingletonService'
 
 describe('singleton service lifecycle', function () {
     describe('singleton lifecycle with sync dependencies', function () {
