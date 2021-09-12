@@ -150,5 +150,25 @@ describe('singleton service lifecycle', function () {
             expect(instance1).toBeInstanceOf(DbConnection)
             expect(instance2).toBeInstanceOf(DbConnection)
         })
+
+        it('should destroy an async service with an async destroy callback', async function () {
+            // Arrange
+            const serviceFactoryFunction = async () => {
+                const dbConnection = new DbConnection()
+                dbConnection._isConnected = true
+                return dbConnection
+            }
+            const singletonService = new SingletonService({
+                factory: serviceFactoryFunction,
+                destroy: async dbConnection => dbConnection.disconnect()
+            })
+
+            // Act
+            const instance = await singletonService.instantiate()
+            await singletonService.destroy()
+
+            // Assert
+            expect(instance._isConnected).toBe(false)
+        })
     })
 })
