@@ -1,4 +1,4 @@
-import {DirectedAcyclicGraph, NoVertexError} from '../../src/DirectedAcyclicGraph'
+import {DirectedAcyclicGraph, NoVertexError} from '../src/DirectedAcyclicGraph'
 
 describe('graph', () => {
     it('should add vertex to a graph', () => {
