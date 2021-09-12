@@ -9,8 +9,8 @@ describe('singleton service lifecycle', function () {
             const singletonService = new SingletonService({ factory: serviceFactoryFunction })
 
             // Act
-            const instance1 = singletonService.retrieve(new DbConnection())
-            const instance2 = singletonService.retrieve(new DbConnection())
+            const instance1 = singletonService.instantiate(new DbConnection())
+            const instance2 = singletonService.instantiate(new DbConnection())
 
             // Assert
             expect(instance1).toBe(instance2)
@@ -31,8 +31,8 @@ describe('singleton service lifecycle', function () {
             })
 
             // Act
-            const instance1 = singletonService.retrieve()
-            const instance2 = singletonService.retrieve()
+            const instance1 = singletonService.instantiate()
+            const instance2 = singletonService.instantiate()
 
             // Assert
             expect(instance1).not.toBe(instance2)
@@ -57,8 +57,8 @@ describe('singleton service lifecycle', function () {
             })
 
             // Act
-            const instance1 = singletonService.retrieve()
-            const instance2 = singletonService.retrieve()
+            const instance1 = singletonService.instantiate()
+            const instance2 = singletonService.instantiate()
 
             // Assert
             expect(instance1).toBe(instance2)
@@ -74,8 +74,8 @@ describe('singleton service lifecycle', function () {
             const singletonService = new SingletonService({factory: serviceFactoryFunction})
 
             // Act
-            const instance1 = await singletonService.retrieve(new DbConnection())
-            const instance2 = await singletonService.retrieve(new DbConnection())
+            const instance1 = await singletonService.instantiate(new DbConnection())
+            const instance2 = await singletonService.instantiate(new DbConnection())
 
             // Assert
             expect(instance1).toBe(instance2)
@@ -96,8 +96,8 @@ describe('singleton service lifecycle', function () {
             })
 
             // Act
-            const instance1 = await singletonService.retrieve()
-            const instance2 = await singletonService.retrieve()
+            const instance1 = await singletonService.instantiate()
+            const instance2 = await singletonService.instantiate()
 
             // Assert
             expect(instance1).not.toBe(instance2)
@@ -122,8 +122,8 @@ describe('singleton service lifecycle', function () {
             })
 
             // Act
-            const instance1 = await singletonService.retrieve()
-            const instance2 = await singletonService.retrieve()
+            const instance1 = await singletonService.instantiate()
+            const instance2 = await singletonService.instantiate()
 
             // Assert
             expect(instance1).toBe(instance2)

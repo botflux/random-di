@@ -1,4 +1,4 @@
-import {DefaultServiceFactory, Service} from './Service'
+import {DefaultServiceFactory, InstantiatableService} from './InstantiatableService'
 import {SyncPromise} from '../SyncPromise'
 
 /**
@@ -38,7 +38,7 @@ export type SingletonServiceParameters<ServiceFactory extends DefaultServiceFact
  *
  * @param service
  * @see SingletonServiceParameters#invalidate
- * @see SingletonService#retrieve
+ * @see SingletonService#instantiate
  */
 const defaultInvalidateSingletonServiceInstance = (service: any) => false
 
@@ -47,7 +47,7 @@ const defaultInvalidateSingletonServiceInstance = (service: any) => false
  * This implementation handles both sync and async services.
  * To do so, we use a "SyncPromise" for aligning behaviour.
  */
-export class SingletonService<ServiceFactory extends DefaultServiceFactory> implements Service<ServiceFactory> {
+export class SingletonService<ServiceFactory extends DefaultServiceFactory> implements InstantiatableService<ServiceFactory> {
     /**
      * The currently instantiated service.
      * Since services can be sync or async, we need to un-promisify the service type.
@@ -66,7 +66,7 @@ export class SingletonService<ServiceFactory extends DefaultServiceFactory> impl
      *
      * @param params
      */
-    retrieve(...params: Parameters<ServiceFactory>): ReturnType<ServiceFactory> {
+    instantiate(...params: Parameters<ServiceFactory>): ReturnType<ServiceFactory> {
         const invalidate = this.params.invalidate ?? defaultInvalidateSingletonServiceInstance
 
         const isInvalidPromise = this.instantiatedService.then(
