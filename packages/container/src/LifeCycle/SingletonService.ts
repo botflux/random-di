@@ -1,4 +1,4 @@
-import {DefaultServiceFactory, InstantiatableService} from './InstantiatableService'
+import {DefaultServiceFactory, DestroyableService, InstantiatableService} from './InstantiatableService'
 import {SyncPromise} from '../SyncPromise'
 
 /**
@@ -22,6 +22,13 @@ export type RepairSingletonServiceInstance<Service> = (service: Service extends 
     : Service
 
 /**
+ * A function type used for destroying a singleton instance.
+ *
+ * @see {SingletonService#destroy}
+ */
+export type DestroySingletonServiceInstance<Service> = (service: Service extends Promise<infer InnerService> ? InnerService : Service) => void
+
+/**
  * Parameters type to instantiate a new SingletonService instance.
  *
  * @see SingletonService#constructor
@@ -29,7 +36,8 @@ export type RepairSingletonServiceInstance<Service> = (service: Service extends 
 export type SingletonServiceParameters<ServiceFactory extends DefaultServiceFactory> = {
     factory: ServiceFactory,
     invalidate?: InvalidateSingletonServiceInstance<Unpromisify<ReturnType<ServiceFactory>>>,
-    repair?: RepairSingletonServiceInstance<ReturnType<ServiceFactory>>
+    repair?: RepairSingletonServiceInstance<ReturnType<ServiceFactory>>,
+    destroy?: DestroySingletonServiceInstance<ReturnType<ServiceFactory>>
 }
 
 /**
@@ -47,7 +55,9 @@ const defaultInvalidateSingletonServiceInstance = (service: any) => false
  * This implementation handles both sync and async services.
  * To do so, we use a "SyncPromise" for aligning behaviour.
  */
-export class SingletonService<ServiceFactory extends DefaultServiceFactory> implements InstantiatableService<ServiceFactory> {
+export class SingletonService<ServiceFactory extends DefaultServiceFactory> implements
+    InstantiatableService<ServiceFactory>,
+    DestroyableService<ServiceFactory> {
     /**
      * The currently instantiated service.
      * Since services can be sync or async, we need to un-promisify the service type.
@@ -89,5 +99,19 @@ export class SingletonService<ServiceFactory extends DefaultServiceFactory> impl
         return instancePromise instanceof SyncPromise
             ? instancePromise.unwrap()
             : instancePromise
+    }
+
+    destroy(): ReturnType<ServiceFactory> extends Promise<infer Service> ? Promise<void> : void {
+        const destroyPromise = this.instantiatedService.then(service => {
+            const destroyFunction = this.params.destroy ?? (() => {})
+
+            if (service) {
+                return destroyFunction(service)
+            }
+        })
+
+        return destroyPromise instanceof SyncPromise
+            ? destroyPromise.unwrap()
+            : destroyPromise.then(() => {})
     }
 }

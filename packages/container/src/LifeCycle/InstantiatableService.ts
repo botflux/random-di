@@ -10,3 +10,6 @@ export interface InstantiatableService<ServiceFactory extends DefaultServiceFact
     instantiate(...params: Parameters<ServiceFactory>): ReturnType<ServiceFactory>
 }
 
+export interface DestroyableService<ServiceFactory extends DefaultServiceFactory> {
+    destroy(): ReturnType<ServiceFactory> extends Promise<infer Service> ? Promise<void> : void
+}

@@ -65,6 +65,26 @@ describe('singleton service lifecycle', function () {
             expect(instance1).toBeInstanceOf(DbConnection)
             expect(instance2).toBeInstanceOf(DbConnection)
         })
+
+        it('should destroy sync services using a sync callback', function () {
+            // Arrange
+            const serviceFactoryFunction = () => {
+                const dbConnection = new DbConnection()
+                dbConnection._isConnected = true
+                return dbConnection
+            }
+            const singletonService = new SingletonService({
+                factory: serviceFactoryFunction,
+                destroy: dbConnection => dbConnection.disconnect()
+            })
+
+            // Act
+            const instance = singletonService.instantiate()
+            singletonService.destroy()
+
+            // Assert
+            expect(instance._isConnected).toBe(false)
+        })
     })
 
     describe('singleton lifecycle with async dependencies', function () {
