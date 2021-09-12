@@ -1,5 +1,5 @@
 import {DefaultServiceFactory, DestroyableService, InstantiatableService} from './InstantiatableService'
-import {SyncPromise} from '../SyncPromise'
+import {isSyncPromise, SyncPromise} from '../SyncPromise'
 
 /**
  * A simple type util to get the wrapped type of a promise.
@@ -96,7 +96,7 @@ export class SingletonService<ServiceFactory extends DefaultServiceFactory> impl
 
         this.instantiatedService = instancePromise
 
-        return instancePromise instanceof SyncPromise
+        return isSyncPromise(instancePromise)
             ? instancePromise.unwrap()
             : instancePromise
     }

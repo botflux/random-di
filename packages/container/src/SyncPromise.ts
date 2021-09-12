@@ -1,23 +1,10 @@
-/**
- * Represents a mapping operation for a SyncPromise.
- */
-export type SyncPromiseOperation<T, U> = (value: T) => U
 
 /**
  * Sync Promise is just a promise that can be unwrapped.
  * We use this class in order to treat async and sync operation the same way.
  */
 export class SyncPromise<T> implements PromiseLike<T> {
-    constructor(private readonly value: T) {
-    }
-
-    // /**
-    //  * Transform the wrapped value.
-    //  * @param operation
-    //  */
-    // then<U>(operation: SyncPromiseOperation<T, U>): SyncPromise<U> {
-    //     return new SyncPromise<U>(operation(this.value))
-    // }
+    constructor(private readonly value: T) {}
 
     /**
      * Return the wrapped value.
@@ -59,3 +46,11 @@ export class SyncPromise<T> implements PromiseLike<T> {
         }
     }
 }
+
+/**
+ * Returns true when the given {@see PromiseLike} is a {@see SyncPromise}; otherwise false.
+ *
+ * @param value
+ */
+export const isSyncPromise = <T>(value: PromiseLike<T>): value is SyncPromise<T> =>
+    value instanceof SyncPromise
