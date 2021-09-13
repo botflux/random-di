@@ -45,6 +45,14 @@ export class SyncPromise<T> implements PromiseLike<T> {
             return Promise.all([ a, b ])
         }
     }
+
+    static allWithoutTypeChecking (params: PromiseLike<any>[]): PromiseLike<any[]> {
+        const hasAsync = params.some(maybePromise => maybePromise instanceof Promise)
+
+        return hasAsync
+            ? Promise.all(params.map(promise => promise instanceof SyncPromise ? promise.unwrap() : promise))
+            : new SyncPromise(params.map(param => param instanceof SyncPromise ? param.unwrap() : param))
+    }
 }
 
 /**
