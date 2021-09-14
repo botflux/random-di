@@ -5,6 +5,11 @@ import {
     SyncServiceProviderInterface
 } from '../Interfaces'
 
+/**
+ * @deprecated
+ * @param factory
+ * @param servicesKeys
+ */
 export function provideSync<TService>(factory: (...args: any[]) => TService, servicesKeys: ServiceKey[]) {
     return function (provider: SyncServiceProviderInterface) {
         const factoryArguments = servicesKeys.map(key => {
@@ -19,6 +24,11 @@ export function provideSync<TService>(factory: (...args: any[]) => TService, ser
     }
 }
 
+/**
+ * @deprecated
+ * @param factory
+ * @param servicesKeys
+ */
 export function provideAsync<TService>(factory: (...args: any[]) => TService, servicesKeys: ServiceKey[]) {
     return async function (provider: AsyncServiceProviderInterface) {
         const factoryArguments = await Promise.all(servicesKeys.map(key => {

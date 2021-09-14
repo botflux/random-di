@@ -1,9 +1,16 @@
 import {ContainerBuilderInterface, LifeCycle, ServiceKey, SyncServiceProviderInterface} from '../Interfaces'
 
+/**
+ * @deprecated
+ */
 export const Service = (serviceKey: ServiceKey, lifeCycle: LifeCycle): ClassDecorator => target => {
     // @ts-ignore
     Reflect.defineMetadata('Service@ServiceKey', {serviceKey, lifeCycle}, target)
 }
+
+/**
+ * @deprecated
+ */
 export const Inject = (serviceKey: ServiceKey): ParameterDecorator => (target, propertyKey, parameterIndex) => {
     // @ts-ignore
     const injectionTokens = Reflect.getOwnMetadata('Inject@ServiceKey', target) || {}
@@ -12,8 +19,14 @@ export const Inject = (serviceKey: ServiceKey): ParameterDecorator => (target, p
     Reflect.defineMetadata('Inject@ServiceKey', injectionTokens, target)
 }
 
+/**
+ * @deprecated
+ */
 type Constructor<T> = { new(...args: any[]): T }
 
+/**
+ * @deprecated
+ */
 export const reflectServiceLoader = (services: Constructor<unknown>[]) => (containerBuilder: ContainerBuilderInterface) => {
     const servicesFactories = services.map(constructor => {
         // @ts-ignore

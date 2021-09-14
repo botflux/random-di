@@ -5,6 +5,10 @@ import {
     SyncServiceProviderInterface
 } from '../Interfaces'
 
+
+/**
+ * @deprecated
+ */
 class SyncServiceProvider implements SyncServiceProviderInterface {
     constructor(private readonly innerContainer: ContainerInterface) {}
 
@@ -16,6 +20,10 @@ class SyncServiceProvider implements SyncServiceProviderInterface {
     }
 }
 
+
+/**
+ * @deprecated
+ */
 class CombinedSyncServiceProvider implements SyncServiceProviderInterface {
     constructor(private readonly providers: SyncServiceProviderInterface[]) {}
 
@@ -34,6 +42,9 @@ class CombinedSyncServiceProvider implements SyncServiceProviderInterface {
     }
 }
 
+/**
+ * @deprecated
+ */
 class AsyncServiceProvider implements AsyncServiceProviderInterface {
     private readonly syncProvider: SyncServiceProviderInterface
 
@@ -58,6 +69,9 @@ class AsyncServiceProvider implements AsyncServiceProviderInterface {
     }
 }
 
+/**
+ * @deprecated
+ */
 class CombinedAsyncServiceProvider implements AsyncServiceProviderInterface {
     constructor(private readonly providers: AsyncServiceProviderInterface[]) {}
 
@@ -90,14 +104,26 @@ class CombinedAsyncServiceProvider implements AsyncServiceProviderInterface {
     }
 }
 
+/**
+ * @deprecated
+ */
 export const createSyncServiceProvider = (container: ContainerInterface) =>
     new SyncServiceProvider(container)
 
+/**
+ * @deprecated
+ */
 export const createCombinedSyncServiceProvider = (providers: SyncServiceProviderInterface[]) =>
     new CombinedSyncServiceProvider(providers)
 
+/**
+ * @deprecated
+ */
 export const createCombinedAsyncServiceProvider = (providers: AsyncServiceProviderInterface[]) =>
     new CombinedAsyncServiceProvider(providers)
 
+/**
+ * @deprecated
+ */
 export const createAsyncServiceProvider = (container: ContainerInterface) =>
     new AsyncServiceProvider(container)

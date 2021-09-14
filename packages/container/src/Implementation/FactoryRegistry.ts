@@ -1,5 +1,8 @@
 import {SyncServiceFactory, ServiceKey} from '../Interfaces'
 
+/**
+ * @deprecated
+ */
 export abstract class FactoryRegistry {
     constructor(protected readonly factoriesMap: Map<ServiceKey, SyncServiceFactory<unknown>>) {
     }
@@ -9,6 +12,9 @@ export abstract class FactoryRegistry {
     has = (serviceKey: ServiceKey) => this.factoriesMap.has(serviceKey)
 }
 
+/**
+ * @deprecated
+ */
 class TransientFactoryRegistry extends FactoryRegistry {
     getFactory<TService>(serviceKey: ServiceKey): SyncServiceFactory<TService> | undefined {
         const factory = this.factoriesMap.get(serviceKey)
@@ -20,8 +26,14 @@ class TransientFactoryRegistry extends FactoryRegistry {
     }
 }
 
+/**
+ * @deprecated
+ */
 type ResolvedServicesMap = Map<ServiceKey, unknown>
 
+/**
+ * @deprecated
+ */
 class SingletonFactoryRegistry extends FactoryRegistry {
     private readonly resolvedSingletons: ResolvedServicesMap =
         new Map<ServiceKey, unknown>()
@@ -46,8 +58,16 @@ class SingletonFactoryRegistry extends FactoryRegistry {
     }
 }
 
+/**
+ * @deprecated
+ * @param factoriesMap
+ */
 export const createSingletonFactoryRegistry = (factoriesMap: Map<ServiceKey, SyncServiceFactory<unknown>>) =>
     new SingletonFactoryRegistry(factoriesMap)
 
+/**
+ * @deprecated
+ * @param factoriesMap
+ */
 export const createTransientFactoryRegistry = (factoriesMap: Map<ServiceKey, SyncServiceFactory<unknown>>) =>
     new TransientFactoryRegistry(factoriesMap)

@@ -15,6 +15,9 @@ import {
 import {createSingletonFactoryRegistry, createTransientFactoryRegistry, FactoryRegistry} from './FactoryRegistry'
 import {createAsyncServiceProvider, createSyncServiceProvider} from './ServiceProvider'
 
+/**
+ * @deprecated
+ */
 class Container implements ContainerInterface {
 
     private readonly syncFactoriesRegistry =
@@ -72,6 +75,9 @@ class Container implements ContainerInterface {
     }
 }
 
+/**
+ * @deprecated
+ */
 class ContainerBuilder implements ContainerBuilderInterface {
     private readonly syncFactories =
         new Map<LifeCycle, Map<ServiceKey, SyncServiceFactory<unknown>>>()
@@ -133,9 +139,22 @@ class ContainerBuilder implements ContainerBuilderInterface {
     }
 }
 
+/**
+ * @deprecated
+ */
 export type CreateContainerBuilderOptions = { loaders: ServiceLoaderInterface[] }
+
+/**
+ * @deprecated
+ */
 const defaultOptions = { loaders: [] }
 
+/**
+ * @deprecated
+ * @param options
+ * @param createProvider
+ * @param createAsyncProvider
+ */
 export const createContainerBuilder = (options: CreateContainerBuilderOptions = defaultOptions,
                                        createProvider: (containerInterface: ContainerInterface) => SyncServiceProviderInterface = createSyncServiceProvider,
                                        createAsyncProvider: (containerInterface: ContainerInterface) => AsyncServiceProviderInterface = createAsyncServiceProvider) =>
