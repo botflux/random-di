@@ -10,6 +10,12 @@ export interface InstantiatableService<ServiceFactory extends DefaultServiceFact
     instantiate(...params: Parameters<ServiceFactory>): ReturnType<ServiceFactory>
 }
 
+/**
+ * Implemented by services that can be destroyed.
+ */
 export interface DestroyableService<ServiceFactory extends DefaultServiceFactory> {
+    /**
+     * Destroy the service.
+     */
     destroy(): ReturnType<ServiceFactory> extends Promise<infer Service> ? Promise<void> : void
 }
