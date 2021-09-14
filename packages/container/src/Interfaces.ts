@@ -30,10 +30,29 @@ export interface ContainerInterface {
     hasAsync(key: ServiceKey): boolean
 }
 
+/**
+ * Represents a service's key.
+ */
 export type ServiceKey = string | Symbol | number
+
+/**
+ * A factory that creates a sync service.
+ */
 export type SyncServiceFactory<TService> = (provider: SyncServiceProviderInterface) => TService
+
+/**
+ * A factory that creates an async service.
+ */
 export type AsyncServiceFactory<TService> = (provider: AsyncServiceProviderInterface) => TService
+
+/**
+ * Both sync and async service factory types.
+ */
 export type ServiceFactory<TService> = AsyncServiceFactory<TService> | SyncServiceFactory<TService>
+
+/**
+ * A service constructor type
+ */
 export type ServiceConstructor<TService> = { new(...args: any[]): TService }
 
 /**
@@ -77,16 +96,30 @@ export interface ContainerBuilderInterface {
     build(): ContainerInterface
 }
 
+/**
+ * Limits the dependencies reachable by a sync service.
+ * This interface is used by service factories in order to retrieve others services.
+ *
+ * @see {SyncServiceFactory}
+ */
 export interface SyncServiceProviderInterface {
     get<TService>(key: ServiceKey): TService
     has(key: ServiceKey): boolean
 }
 
+/**
+ * This interface is used by service factories in order to retrieve others services.
+ *
+ * @see {AsyncServiceFactory}
+ */
 export interface AsyncServiceProviderInterface extends SyncServiceProviderInterface {
     getAsync<TService>(key: ServiceKey): Promise<TService>
     hasAsync(key: ServiceKey): boolean
 }
 
+/**
+ * Possible service life cycle.
+ */
 export enum LifeCycle {
     Transient,
     Singleton,
@@ -110,4 +143,9 @@ export class ServiceNotFoundError extends Error {
     }
 }
 
+/**
+ * A simple callback used for deferring service load to another place.
+ *
+ * @see {createContainerBuilder}
+ */
 export type ServiceLoaderInterface = (containerBuilder: ContainerBuilderInterface) => void
