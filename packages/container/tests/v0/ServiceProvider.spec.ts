@@ -1,6 +1,6 @@
-import {createContainerBuilder} from '../src/Implementation/Container'
-import {LifeCycle} from '../src/Interfaces'
-import {createAsyncServiceProvider} from '../src/Implementation/ServiceProvider'
+import {createContainerBuilder} from '../../src/v0'
+import {LifeCycle} from '../../src/v0'
+import {createAsyncServiceProvider} from '../../src/v0'
 
 describe('#AsyncServiceProvider', function () {
     it('should proxy inner container getAsync method', async function () {

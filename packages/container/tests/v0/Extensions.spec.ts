@@ -1,4 +1,4 @@
-import {createContainerBuilder, LifeCycle, provideAsync, provideSync, ServiceNotFoundError} from '../src'
+import {createContainerBuilder, LifeCycle, provideAsync, provideSync, ServiceNotFoundError} from '../../src/v0'
 
 
 describe('facilitate factory creation by using a factory extension', function () {

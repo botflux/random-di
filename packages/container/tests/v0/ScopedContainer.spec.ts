@@ -1,6 +1,6 @@
-import {createContainerBuilder} from '../src/Implementation/Container'
-import {LifeCycle} from '../src/Interfaces'
-import {createScopedContainerBuilder} from '../src/Implementation/ScopedContainer'
+import {createContainerBuilder} from '../../src/v0/Implementation/Container'
+import {LifeCycle} from '../../src/v0/Interfaces'
+import {createScopedContainerBuilder} from '../../src/v0/Implementation/ScopedContainer'
 
 describe('#ScopedContainer', function () {
     describe('#ScopedContainer.has', function () {

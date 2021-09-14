@@ -1,7 +1,7 @@
 import 'reflect-metadata'
-import {createContainerBuilder} from '../src'
-import {Inject, reflectServiceLoader, Service} from '../src'
-import {LifeCycle} from '../src'
+import {createContainerBuilder} from '../../src/v0'
+import {Inject, reflectServiceLoader, Service} from '../../src/v0'
+import {LifeCycle} from '../../src/v0'
 
 @Service("MyService", LifeCycle.Singleton)
 class MyService {}

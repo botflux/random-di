@@ -1,10 +1,10 @@
-import {DbConnection, UserRepository} from './Services'
-import {DefaultServiceFactory, InstantiatableService} from '../src/LifeCycle/InstantiatableService'
-import {SingletonService, SingletonServiceParameters} from '../src/LifeCycle/SingletonService'
-import {ServiceFactory} from '../src'
-import {DirectedAcyclicGraph} from '../src/DirectedAcyclicGraph'
-import {TransientService} from '../src/LifeCycle/TransientService'
-import {SyncPromise} from '../src/SyncPromise'
+import {DbConnection, UserRepository} from '../Services'
+import {DefaultServiceFactory, InstantiatableService} from '../../src/LifeCycle/InstantiatableService'
+import {SingletonService, SingletonServiceParameters} from '../../src/LifeCycle/SingletonService'
+import {ServiceFactory} from '../../src/v0'
+import {DirectedAcyclicGraph} from '../../src/DirectedAcyclicGraph'
+import {TransientService} from '../../src/LifeCycle/TransientService'
+import {SyncPromise} from '../../src/SyncPromise'
 
 class Service<ServiceFactory extends DefaultServiceFactory, LifeCycle extends LifeCycleType<ServiceFactory> = TransientLifeCycleType> {
     constructor(
