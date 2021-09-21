@@ -21,3 +21,29 @@ export class UserRepository {
         public readonly dbConnection: DbConnection
     ) {}
 }
+
+export class Configuration {
+    constructor(
+       public readonly connectionUri: string,
+    ) {}
+}
+
+export class ConfigurationLoader {
+    constructor(public readonly fileLocation: string) {}
+
+    load(): Configuration {
+        return new Configuration('uri://to-db')
+    }
+
+    async loadAsync(): Promise<Configuration> {
+        return this.load()
+    }
+}
+
+export class DatabaseConnection {
+    constructor(public readonly configuration: Configuration) {}
+}
+
+export class ArticleRepository {
+    constructor(public readonly dbConnection: DatabaseConnection) {}
+}
