@@ -85,6 +85,28 @@ describe('singleton service lifecycle', function () {
             // Assert
             expect(instance._isConnected).toBe(false)
         })
+
+        it('should not destroy sync service if not instantiated', function () {
+            // Arrange
+            const serviceFactory = () => {
+                const dbConnection = new DbConnection()
+                dbConnection._isConnected = true
+                return dbConnection
+            }
+
+            const destroyFunction = jest.fn()
+
+            const singletonService = new SingletonService({
+                factory: serviceFactory,
+                destroy: destroyFunction
+            })
+
+            // Act
+            singletonService.destroy()
+
+            // Assert
+            expect(destroyFunction).not.toBeCalled()
+        })
     })
 
     describe('singleton lifecycle with async dependencies', function () {
@@ -169,6 +191,23 @@ describe('singleton service lifecycle', function () {
 
             // Assert
             expect(instance._isConnected).toBe(false)
+        })
+
+        it('should not destroy async service if not instantiated', async function () {
+            // Arrange
+            const serviceFactory = async () => new DbConnection()
+            const destroyFunction = jest.fn(async () => {
+            })
+            const singletonService = new SingletonService({
+                factory: serviceFactory,
+                destroy: destroyFunction
+            })
+
+            // Act
+            await singletonService.destroy()
+
+            // Assert
+            expect(destroyFunction).not.toBeCalled()
         })
     })
 })
