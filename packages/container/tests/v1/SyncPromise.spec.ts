@@ -1,4 +1,4 @@
-import {NullFulfilledCallbackError, SyncPromise} from '../src/SyncPromise'
+import {NullFulfilledCallbackError, SyncPromise} from '../../src/v1/SyncPromise'
 
 describe('sync promise', function () {
     it('should use the same api as promise for chaining operation', function () {

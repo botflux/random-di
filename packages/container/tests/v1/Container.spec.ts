@@ -6,11 +6,11 @@ import {
     DbConnection,
     UserRepository
 } from '../Services'
-import {DirectedAcyclicGraph} from '../../src/DirectedAcyclicGraph'
-import {InstantiatableService} from '../../src/LifeCycle/InstantiatableService'
-import {TransientService} from '../../src/LifeCycle/TransientService'
-import {SingletonService} from '../../src/LifeCycle/SingletonService'
-import {isSyncPromise, SyncPromise} from '../../src/SyncPromise'
+import {DirectedAcyclicGraph} from '../../src/v1/DirectedAcyclicGraph'
+import {InstantiatableService} from '../../src/v1/LifeCycle/InstantiatableService'
+import {TransientService} from '../../src/v1/LifeCycle/TransientService'
+import {SingletonService} from '../../src/v1/LifeCycle/SingletonService'
+import {isSyncPromise, SyncPromise} from '../../src/v1/SyncPromise'
 
 type Singleton = "Singleton"
 type Transient = "Transient"

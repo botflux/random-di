@@ -1,5 +1,5 @@
-import {DbConnection, UserRepository} from '../Services'
-import {SingletonService} from '../../src/LifeCycle/SingletonService'
+import {DbConnection, UserRepository} from '../../Services'
+import {SingletonService} from '../../../src/v1/LifeCycle/SingletonService'
 
 describe('singleton service lifecycle', function () {
     describe('singleton lifecycle with sync dependencies', function () {

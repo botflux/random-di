@@ -1,5 +1,5 @@
-import {DbConnection, UserRepository} from '../Services'
-import {TransientService} from '../../src/LifeCycle/TransientService'
+import {DbConnection, UserRepository} from '../../Services'
+import {TransientService} from '../../../src/v1/LifeCycle/TransientService'
 
 describe('transient service lifecycle', function () {
     it('should instantiate the transient service every time', function () {
