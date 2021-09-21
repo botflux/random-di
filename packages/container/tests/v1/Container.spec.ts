@@ -11,6 +11,7 @@ import {InstantiatableService} from '../../src/v1/LifeCycle/InstantiatableServic
 import {TransientService} from '../../src/v1/LifeCycle/TransientService'
 import {SingletonService} from '../../src/v1/LifeCycle/SingletonService'
 import {isSyncPromise, SyncPromise} from '../../src/v1/SyncPromise'
+import {ServiceAlreadyRegisteredError} from '../../src/v0'
 
 type Singleton = "Singleton"
 type Transient = "Transient"
@@ -74,6 +75,16 @@ interface ContainerBuilderInterface {
     build(): ContainerInterface
 }
 
+class DependencyNotFoundError extends Error {
+    constructor(serviceName: string, dependencyName: string) {
+        super(`Missing dependency ${dependencyName} for instantiating ${serviceName}.`
+            + `Are you sure "${dependencyName}" is spelled correctly?`
+            + `Is "${dependencyName}" registered?`
+            + `Is "${dependencyName}" declared before? If not, you must declare it before.`
+        )
+    }
+}
+
 class ContainerBuilder implements ContainerBuilderInterface {
     constructor(
         private readonly dependencyGraph: DirectedAcyclicGraph<string, InstantiatableService<any>> = new DirectedAcyclicGraph()
@@ -82,13 +93,17 @@ class ContainerBuilder implements ContainerBuilderInterface {
     addService<ServiceFactory extends DefaultServiceFactory>(options: ServiceOptions<ServiceFactory>): this {
         const { dependsOn = [], lifeCycle = LifeCycle.Singleton } = options
 
+        if (this.dependencyGraph.isVertexExisting(options.name)) {
+            throw new ServiceAlreadyRegisteredError(options.name)
+        }
+
         const service = lifeCycle === 'Transient'
             ? new TransientService({ factory: options.factory })
             : new SingletonService({ factory: options.factory })
 
         dependsOn.forEach(dependencyName => {
             if (!this.dependencyGraph.isVertexExisting(dependencyName)) {
-                throw new Error("Dependency does not exist.")
+                throw new DependencyNotFoundError(options.name, dependencyName)
             }
         })
 
@@ -169,6 +184,43 @@ describe('sync services injection', function () {
 
         // Assert
         expect(articleRepository1.dbConnection.configuration.connectionUri).toBeTruthy()
+    })
+
+    it('should throw when a dependency does not exist', function () {
+        // Arrange
+        const builder = createContainerBuilder()
+            .addService({
+                name: 'db-connection',
+                factory: () => new DbConnection()
+            })
+
+        // Act
+        const shouldThrow = () => builder.addService({
+            name: 'user-repository',
+            factory: (dbConnection: DbConnection) => new UserRepository(dbConnection),
+            dependsOn: [ 'db-connection-misspelled' ]
+        })
+
+        // Assert
+        expect(shouldThrow).toThrow(DependencyNotFoundError)
+    })
+
+    it('should throw when the dependency is declared twice', function () {
+        // Arrange
+        const builder = createContainerBuilder()
+            .addService({
+                name: 'dbConnection',
+                factory: () => new DbConnection()
+            })
+
+        // Act
+        const shouldThrow = () => builder.addService({
+            name: 'dbConnection',
+            factory: () => new DbConnection()
+        })
+
+        // Assert
+        expect(shouldThrow).toThrow(ServiceAlreadyRegisteredError)
     })
 })
 
