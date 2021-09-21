@@ -1,4 +1,4 @@
-import {DirectedAcyclicGraph, NoVertexError} from '../src/DirectedAcyclicGraph'
+import {DirectedAcyclicGraph, NoNeighbourError, NoVertexError} from '../src/DirectedAcyclicGraph'
 
 describe('graph', () => {
     it('should add vertex to a graph', () => {
@@ -13,6 +13,18 @@ describe('graph', () => {
             value: "world",
             neighbours: []
         })
+    })
+
+    it('should throw when adding a new vertex that has unknown neighbours', function () {
+        // Arrange
+        const graph = new DirectedAcyclicGraph()
+
+        // Act
+        graph.addVertex('my-vertex', 'hello')
+        const shouldThrow = () => graph.addVertex('another-vertex', 'foo', [ 'my-vertex', 'unexisting-vertex' ])
+
+        // Assert
+        expect(shouldThrow).toThrow(NoNeighbourError)
     })
 
     it('should connect multiple vertices', () => {
