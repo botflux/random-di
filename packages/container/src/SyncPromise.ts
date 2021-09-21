@@ -1,4 +1,10 @@
 
+export class NullFulfilledCallbackError extends Error {
+    constructor() {
+        super("You must pass a fulfilled callback in order to chain sync promise.")
+    }
+}
+
 /**
  * Sync Promise is just a promise that can be unwrapped.
  * We use this class in order to treat async and sync operation the same way.
@@ -35,7 +41,7 @@ export class SyncPromise<T> implements PromiseLike<T> {
             }
         }
 
-        throw new Error('you must pass a onfulfilled callback')
+        throw new NullFulfilledCallbackError()
     }
 
     static all<T1, T2> (a: PromiseLike<T1>, b: PromiseLike<T2>): PromiseLike<[T1, T2]> {
@@ -46,7 +52,7 @@ export class SyncPromise<T> implements PromiseLike<T> {
         }
     }
 
-    static allWithoutTypeChecking (params: PromiseLike<any>[]): PromiseLike<any[]> {
+    static allWithoutTypeChecking (params: any[]): PromiseLike<any[]> {
         const hasAsync = params.some(maybePromise => maybePromise instanceof Promise)
 
         return hasAsync
