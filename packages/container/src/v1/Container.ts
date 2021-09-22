@@ -1,16 +1,20 @@
 import {DirectedAcyclicGraph} from './DirectedAcyclicGraph'
-import {InstantiatableService} from './LifeCycle/InstantiatableService'
+import {DefaultServiceFactory, InstantiatableService} from './LifeCycle/InstantiatableService'
 import {isSyncPromise, SyncPromise} from './SyncPromise'
-import {ServiceAlreadyRegisteredError} from '../v0'
+import {ServiceAlreadyRegisteredError, ServiceFactory} from '../v0'
 import {TransientService} from './LifeCycle/TransientService'
-import {SingletonService} from './LifeCycle/SingletonService'
+import {SingletonService, SingletonServiceParameters} from './LifeCycle/SingletonService'
 
-export type Singleton = 'Singleton'
+export type Singleton<ServiceFactory extends DefaultServiceFactory> = Omit<SingletonServiceParameters<ServiceFactory>, 'factory'> & { type: 'Singleton' }
 export type Transient = 'Transient'
-type LifeCycleKind = Singleton | Transient
+export type LifeCycleKind<ServiceFactory extends DefaultServiceFactory> = Singleton<ServiceFactory> | Transient
 export const LifeCycle = {
-    Singleton: 'Singleton' as Singleton,
-    Transient: 'Transient' as Transient
+    Singleton: { type: 'Singleton' } as Singleton<any>,
+    Transient: 'Transient' as Transient,
+    newSingleton: <ServiceFactory extends DefaultServiceFactory>(options: Omit<SingletonServiceParameters<ServiceFactory>, 'factory'>) => ({
+        type: 'Singleton',
+        ...options
+    }) as Singleton<ServiceFactory>
 }
 
 interface ContainerInterface {
@@ -52,12 +56,11 @@ class Container implements ContainerInterface {
     }
 }
 
-type DefaultServiceFactory = (...params: any[]) => any
 type ServiceOptions<ServiceFactory extends DefaultServiceFactory> = {
     name: string
     factory: ServiceFactory
     dependsOn?: string[]
-    lifeCycle?: LifeCycleKind
+    lifeCycle?: LifeCycleKind<ServiceFactory>
 }
 
 interface ContainerBuilderInterface {
@@ -90,8 +93,8 @@ class ContainerBuilder implements ContainerBuilderInterface {
         }
 
         const service = lifeCycle === 'Transient'
-            ? new TransientService({factory: options.factory})
-            : new SingletonService({factory: options.factory})
+            ? new TransientService({ factory: options.factory })
+            : new SingletonService({ factory: options.factory, ...lifeCycle })
 
         dependsOn.forEach(dependencyName => {
             if (!this.dependencyGraph.isVertexExisting(dependencyName)) {

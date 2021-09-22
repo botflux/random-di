@@ -119,6 +119,32 @@ describe('sync services injection', function () {
         // Assert
         expect(throws).toThrow(Error)
     })
+
+    it('should invalidate singleton instances', function () {
+        // Arrange
+        const factory = jest.fn(() => {
+            const connection = new DbConnection()
+            connection._isConnected = false
+            return connection
+        })
+        const container = createContainerBuilder()
+            .addService({
+                name: 'dbConnection',
+                factory,
+                lifeCycle: LifeCycle.newSingleton({
+                    invalidate: (service: DbConnection) => !service.isConnected(),
+                })
+            })
+            .build()
+
+        // Act
+        const dbConnection1 = container.get('dbConnection')
+        const dbConnection2 = container.get('dbConnection')
+
+        // Assert
+        expect(factory).toBeCalledTimes(2)
+        expect(dbConnection1).not.toBe(dbConnection2)
+    })
 })
 
 describe('async services injection', function () {
@@ -182,17 +208,6 @@ describe('async services injection', function () {
 
         // Assert
         expect(articleRepository1.dbConnection.configuration.connectionUri).toBeTruthy()
-    })
-
-    it('should reject if the requested service does not exist', async function () {
-        // Arrange
-        const container = createContainerBuilder().build()
-
-        // Act
-        const rejection = container.getAsync('not-existing-service')
-
-        // Assert
-        await expect(rejection).rejects.toEqual(Error)
     })
 })
 
