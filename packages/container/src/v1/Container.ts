@@ -36,8 +36,7 @@ class Container implements ContainerInterface {
         const isAnyDependencyAsync = dependencies.some(dependency => dependency instanceof Promise)
         const dependenciesPromise = isAnyDependencyAsync
             ? Promise.all(dependencies)
-            : SyncPromise.allWithoutTypeChecking(dependencies.map(dependency =>
-                dependency instanceof SyncPromise ? dependency : SyncPromise.from(dependency)))
+            : SyncPromise.allWithoutTypeChecking(dependencies)
 
         const serviceInstancePromise = dependenciesPromise.then(
             dependencies => service.value.instantiate(...dependencies)
