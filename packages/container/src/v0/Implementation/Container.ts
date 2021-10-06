@@ -89,17 +89,19 @@ class ContainerBuilder implements ContainerBuilderInterface {
             .set(LifeCycle.Singleton, new Map())
             .set(LifeCycle.Transient, new Map())
 
+    private readonly allowServiceOverriding: boolean
+
     constructor(options: CreateContainerBuilderOptions,
                 private readonly createProvider: (containerInterface: ContainerInterface) => SyncServiceProviderInterface = createSyncServiceProvider,
                 private readonly createAsyncProvider: (containerInterface: ContainerInterface) => AsyncServiceProviderInterface = createAsyncServiceProvider
     ) {
-        options.loaders.forEach(loader => loader(this))
+        options.loaders?.forEach(loader => loader(this))
+        this.allowServiceOverriding = options.allowServiceOverriding ?? false
     }
 
-    addFactory<TService>(key: ServiceKey, factory: SyncServiceFactory<TService>, lifeCycle: LifeCycle = LifeCycle.Singleton): this {
-        if (this.isAlreadyRegistered(key))
+    addFactory<TService>(key: ServiceKey, factory: SyncServiceFactory<TService>, lifeCycle: LifeCycle): this {
+        if (this.isAlreadyRegistered(key) && !this.allowServiceOverriding)
             throw new ServiceAlreadyRegisteredError(key)
-
 
         this.syncFactories.get(lifeCycle)?.set(key, factory)
         // this.syncFactories.set(key, {factory, lifeCycle})
@@ -122,8 +124,8 @@ class ContainerBuilder implements ContainerBuilderInterface {
         return this
     }
 
-    addAsyncFactory<TService>(key: ServiceKey, factory: AsyncServiceFactory<Promise<TService>>, lifeCycle: LifeCycle = LifeCycle.Singleton): this {
-        if (this.isAlreadyRegistered(key))
+    addAsyncFactory<TService>(key: ServiceKey, factory: AsyncServiceFactory<Promise<TService>>, lifeCycle: LifeCycle): this {
+        if (this.isAlreadyRegistered(key) && !this.allowServiceOverriding)
             throw new ServiceAlreadyRegisteredError(key)
 
         this.asyncFactories.get(lifeCycle)?.set(key, factory)
@@ -142,11 +144,7 @@ class ContainerBuilder implements ContainerBuilderInterface {
 /**
  * @deprecated
  */
-export type CreateContainerBuilderOptions = { loaders: ServiceLoaderInterface[] }
-
-/**
- * @deprecated
- */
+export type CreateContainerBuilderOptions = { loaders?: ServiceLoaderInterface[], allowServiceOverriding?: boolean }
 const defaultOptions = { loaders: [] }
 
 /**

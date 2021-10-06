@@ -153,6 +153,26 @@ it('should throw when overriding service', function () {
     expect(shouldThrow4).toThrow(`Service with key "MyService" was already registered.`)
 })
 
+it('should not throw when overriding service if the allowServiceOverriding is true', async () => {
+    // Arrange
+    const builder = createContainerBuilder({ allowServiceOverriding: true })
+
+    // Act
+    const container = builder
+        .addFactory('MyService', () => 'hello', LifeCycle.Singleton)
+        .addFactory('MyService', () => 'world', LifeCycle.Singleton)
+        .addAsyncFactory('MyAsyncService', async () => 'hello', LifeCycle.Singleton)
+        .addAsyncFactory('MyAsyncService', async () => 'world', LifeCycle.Singleton)
+        .build()
+
+    const myService = container.get('MyService')
+    const myServiceAsync = await container.getAsync('MyAsyncService')
+
+    // Assert
+    expect(myService).toBe('world')
+    expect(myServiceAsync).toBe('world')
+})
+
 describe('services lifetime', function () {
 
     it('should create singleton services', function () {
