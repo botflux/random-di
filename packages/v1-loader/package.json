@@ -1,6 +1,6 @@
 {
   "name": "@random-di/v1-loader",
-  "version": "0.0.7",
+  "version": "0.1.0",
   "description": "A @random-di/container service loader for @botflx/dependency-injection-container container",
   "main": "dist/index.js",
   "scripts": {
