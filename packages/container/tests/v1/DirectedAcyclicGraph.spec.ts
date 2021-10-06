@@ -65,4 +65,22 @@ describe('graph', () => {
 
         expect(shouldThrow).toThrow(NoVertexError)
     })
+
+    it('should traverse the graph to find vertex that satisfy a predicate', function () {
+        // Arrange
+        const graph = new DirectedAcyclicGraph<string, string>()
+
+        graph.addVertex("world", "value4")
+        graph.addVertex("hello", "value3")
+        graph.addVertex("bar", "value2", [ 'world', 'hello' ])
+        graph.addVertex("foo", "value1", [ 'bar' ])
+
+        // Act
+        const hasWorld = graph.some('foo', vertex => vertex.key === 'world')
+        const hasHelloWorld = graph.some('foo', vertex => vertex.key === 'hello_world')
+
+        // Assert
+        expect(hasWorld).toBe(true)
+        expect(hasHelloWorld).toBe(false)
+    })
 })

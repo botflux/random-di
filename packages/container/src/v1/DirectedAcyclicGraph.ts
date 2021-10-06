@@ -129,4 +129,14 @@ export class DirectedAcyclicGraph<Key, Value> {
         vertex.neighbours
             .forEach(key => this.traverse(key, visit))
     }
+
+    some(key: Key, predicate: (vertex: Vertex<Key, Value>) => boolean): boolean {
+        let hasSome = false
+
+        this.traverse(key, vertex => {
+            if (!hasSome) hasSome = predicate(vertex)
+        })
+
+        return hasSome
+    }
 }
