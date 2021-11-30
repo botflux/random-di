@@ -3,7 +3,7 @@ import {
     Configuration,
     ConfigurationLoader,
     DatabaseConnection,
-    DbConnection,
+    DbConnection, SomeRepository,
     UserRepository
 } from '../Services'
 import {ServiceAlreadyRegisteredError} from '../../src/v0'
@@ -144,6 +144,43 @@ describe('sync services injection', function () {
         // Assert
         expect(factory).toBeCalledTimes(2)
         expect(dbConnection1).not.toBe(dbConnection2)
+    })
+
+    it.skip('should invalidate singletons that depends on an invalidated singleton', function () {
+        // Arrange
+        const dbConnectionFactory: () => DbConnection = jest.fn(() => {
+            const dbConnection = new DbConnection()
+            dbConnection._isConnected = false
+            return dbConnection
+        })
+        let uniqId = 0
+        const someRepository = jest.fn((dbConnection: DbConnection) =>
+            new SomeRepository(dbConnection, uniqId ++))
+
+        const container = createContainerBuilder()
+            .addService({
+                name: 'dbConnection',
+                factory: dbConnectionFactory,
+                lifeCycle: LifeCycle.newSingleton<typeof dbConnectionFactory>({
+                    invalidate: service => !service.isConnected()
+                })
+            })
+            .addService({
+                name: 'someRepository',
+                factory: someRepository,
+                lifeCycle: LifeCycle.Singleton,
+                dependsOn: [ 'dbConnection' ]
+            })
+            .build()
+
+        // Act
+        const someRepository1 = container.get<SomeRepository>('someRepository')
+        const someRepository2 = container.get<SomeRepository>('someRepository')
+
+        // Assert
+        expect(someRepository1).not.toBe(someRepository2)
+        expect(someRepository).toBeCalledTimes(2)
+        expect(dbConnectionFactory).toBeCalledTimes(2)
     })
 })
 

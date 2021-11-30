@@ -19,3 +19,12 @@ export interface DestroyableService<ServiceFactory extends DefaultServiceFactory
      */
     destroy(): ReturnType<ServiceFactory> extends Promise<infer Service> ? Promise<void> : void
 }
+
+export interface ValidatableService<ServiceFactory extends DefaultServiceFactory> {
+    invalidate(): ReturnType<ServiceFactory> extends Promise<any> ? Promise<void> : void
+    isInvalidated(): ReturnType<ServiceFactory> extends Promise<any> ? Promise<boolean> : boolean
+}
+
+export function isValidatableService(service: any): service is ValidatableService<any> {
+    return 'isInvalidated' in service
+}

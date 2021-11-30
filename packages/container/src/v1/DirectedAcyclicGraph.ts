@@ -5,7 +5,6 @@
 export type Vertex<Key, Value> = {
     key: Key,
     value: Value
-    neighbours: Key[]
 }
 
 /**
@@ -44,6 +43,7 @@ export class NoNeighbourError<Key> extends Error {
  */
 export class DirectedAcyclicGraph<Key, Value> {
     private vertices: Vertex<Key, Value>[] = []
+    private links: Map<Key, Key[]> = new Map()
 
     /**
      * Add a new vertex into the graph.
@@ -62,8 +62,27 @@ export class DirectedAcyclicGraph<Key, Value> {
 
         this.vertices = [
             ...this.vertices,
-            {key, value, neighbours}
+            { key, value }
         ]
+
+        const existingLinks = this.links.get(key) ?? []
+        const newLinks = [ ...existingLinks, ...neighbours ]
+
+        this.links.set(key, newLinks)
+
+        return this
+    }
+
+    addGraph(subGraph: DirectedAcyclicGraph<Key, Value>, subGraphKeyToAdd: Key, graphKey: Key) {
+        subGraph.vertices.forEach(vertex => {
+            const neighbours = subGraph.getNeighbours(vertex.key).map(vertex => vertex.key)
+            this.addVertex(vertex.key, vertex.value, neighbours)
+        })
+
+        const existingLinks = this.links.get(graphKey) ?? []
+        const newLinks = [ ...existingLinks, subGraphKeyToAdd ]
+
+        this.links.set(graphKey, newLinks)
 
         return this
     }
@@ -110,9 +129,9 @@ export class DirectedAcyclicGraph<Key, Value> {
      * @param key2
      */
     areConnected(key1: Key, key2: Key): boolean {
-        const vertex = this.getVertexStrict(key1)
+        const neighbours = this.links.get(key1) ?? []
 
-        return !!vertex.neighbours.find(key => key === key2)
+        return neighbours.includes(key2)
     }
 
     /**
@@ -126,8 +145,9 @@ export class DirectedAcyclicGraph<Key, Value> {
 
         visit(vertex)
 
-        vertex.neighbours
-            .forEach(key => this.traverse(key, visit))
+        const neighbours = this.links.get(key) ?? []
+
+        neighbours.forEach(key => this.traverse(key, visit))
     }
 
     some(key: Key, predicate: (vertex: Vertex<Key, Value>) => boolean): boolean {
@@ -138,5 +158,52 @@ export class DirectedAcyclicGraph<Key, Value> {
         })
 
         return hasSome
+    }
+
+    getNeighbours(key: Key): Vertex<Key, Value>[] {
+        const neighbours = this.links.get(key) ?? []
+        return neighbours.map(key => this.getVertexStrict(key))
+    }
+
+    reverseFrom(graph: DirectedAcyclicGraph<Key, Value> = new DirectedAcyclicGraph<Key, Value>()) {
+        // const vertex = this.getVertexStrict(key)
+        //
+        // graph.addVertex(key, vertex.value)
+        //
+        // this.vertices
+        //     .filter(vertex => vertex.key === key)
+        //     .forEach(vertex => graph.addVertex(vertex.key, vertex.value, [ key ]))
+
+        // const vertex = this.getVertexStrict(key)
+        // const neighbours = this.getNeighbours(key)
+        //
+        // neighbours.forEach(neighbour => {
+        //     const reverseGraph = this.reverseFrom(neighbour.key, graph)
+        //     graph.addGraph(reverseGraph, neighbour.key, vertex.key)
+        // })
+        //
+        // graph.addVertex(vertex.key, vertex.value, neighbours.map(neighbour => neighbour.key))
+        //
+        // return graph
+
+
+        graph.vertices = this.vertices
+
+        let reversedLinks = new Map<Key, Key[]>()
+
+        for (const [ key, neighbours ] of this.links) {
+            for (const neighbour of neighbours) {
+                const existingLinks = reversedLinks.get(neighbour) ?? []
+                const newLinks = [ ...existingLinks, key ]
+
+                reversedLinks.set(neighbour, newLinks)
+            }
+
+            reversedLinks.set(key, reversedLinks.get(key) ?? [])
+        }
+
+        graph.links = reversedLinks
+
+        return graph
     }
 }

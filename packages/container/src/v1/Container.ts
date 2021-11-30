@@ -1,5 +1,5 @@
 import {DirectedAcyclicGraph} from './DirectedAcyclicGraph'
-import {DefaultServiceFactory, InstantiatableService} from './LifeCycle/InstantiatableService'
+import {DefaultServiceFactory, InstantiatableService, isValidatableService} from './LifeCycle/InstantiatableService'
 import {isSyncPromise, SyncPromise} from './SyncPromise'
 import {ServiceAlreadyRegisteredError, ServiceFactory} from '../v0'
 import {TransientService} from './LifeCycle/TransientService'
@@ -47,9 +47,16 @@ class Container implements ContainerInterface {
         }
 
         const service = this.dependencyGraph.getVertexStrict(serviceName)
-        const dependencies = service.neighbours.map(dependencyName => this.get(dependencyName))
+        const dependencies = this.dependencyGraph
+            .getNeighbours(serviceName)
+            .map(dependencyName => this.get(dependencyName.key))
+
+        // Get all the dependent services
 
         const isAnyDependencyAsync = dependencies.some(dependency => dependency instanceof Promise)
+        // isAnyDependentInvalid
+
+        // if any dependent then invalidate the service
 
         const dependenciesPromise = isAnyDependencyAsync
             ? Promise.all(dependencies)

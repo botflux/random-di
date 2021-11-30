@@ -22,6 +22,14 @@ export class UserRepository {
     ) {}
 }
 
+export class SomeRepository {
+    constructor(
+        private readonly dbConnection: DbConnection,
+        private readonly uniqId: number = 0
+    ) {
+    }
+}
+
 export class Configuration {
     constructor(
        public readonly connectionUri: string,

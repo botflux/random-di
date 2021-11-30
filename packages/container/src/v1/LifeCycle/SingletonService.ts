@@ -1,4 +1,9 @@
-import {DefaultServiceFactory, DestroyableService, InstantiatableService} from './InstantiatableService'
+import {
+    DefaultServiceFactory,
+    DestroyableService,
+    InstantiatableService,
+    ValidatableService
+} from './InstantiatableService'
 import {isSyncPromise, SyncPromise} from '../SyncPromise'
 
 /**
@@ -57,7 +62,11 @@ const defaultInvalidateSingletonServiceInstance = (service: any) => false
  */
 export class SingletonService<ServiceFactory extends DefaultServiceFactory> implements
     InstantiatableService<ServiceFactory>,
-    DestroyableService<ServiceFactory> {
+    DestroyableService<ServiceFactory>,
+    ValidatableService<ServiceFactory> {
+
+    private dependents: ValidatableService<any>[] = []
+
     /**
      * The currently instantiated service.
      * Since services can be sync or async, we need to un-promisify the service type.
@@ -113,5 +122,35 @@ export class SingletonService<ServiceFactory extends DefaultServiceFactory> impl
         return destroyPromise instanceof SyncPromise
             ? destroyPromise.unwrap()
             : destroyPromise.then(() => {})
+    }
+
+    invalidate(): ReturnType<ServiceFactory> extends Promise<any> ? Promise<void> : void {
+        const invalidatePromise = this.instantiatedService.then(instance => {
+            if (this.isInvalidated()) {
+                this.instantiatedService = SyncPromise.from(undefined)
+            }
+
+            return undefined
+        })
+
+        const result = isSyncPromise(invalidatePromise)
+            ? invalidatePromise.unwrap()
+            : invalidatePromise
+
+        return result as unknown as ReturnType<ServiceFactory> extends Promise<any> ? Promise<void> : void
+    }
+
+    isInvalidated(): ReturnType<ServiceFactory> extends Promise<any> ? Promise<boolean> : boolean {
+        const isInvalidatedPromise = this.instantiatedService.then(instance => {
+            if (!instance) return false
+            if (!this.params.invalidate) return false
+            return this.params.invalidate(instance)
+        })
+
+        const result = isSyncPromise(isInvalidatedPromise)
+            ? isInvalidatedPromise.unwrap()
+            : isInvalidatedPromise
+
+        return result as unknown as ReturnType<ServiceFactory> extends Promise<any> ? Promise<boolean> : boolean
     }
 }
