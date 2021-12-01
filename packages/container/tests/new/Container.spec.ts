@@ -1,4 +1,3 @@
-import {ServiceFactory} from '../../src/v0'
 
 class DatabaseConnection {}
 class UserRepository {
@@ -18,6 +17,11 @@ class ContainerError extends Error {}
 class NoServiceFoundError extends ContainerError {
     constructor(serviceName: ServiceNameOrConstructor) {
         super(`There is no service matching the given name: "${serviceNameOrConstructorToString(serviceName)}"`)
+    }
+}
+class ServiceAlreadyRegisteredError extends ContainerError {
+    constructor(alreadyRegisteredServiceName: ServiceNameOrConstructor) {
+        super(`Service named "${serviceNameOrConstructorToString(alreadyRegisteredServiceName)}" was already registered.`)
     }
 }
 
@@ -98,17 +102,17 @@ interface InstantiableInterface<TServiceFactory extends DefaultServiceFactory> {
 }
 
 interface InstantiableFactoryInterface {
-    fromFunction(factory: ServiceFactory<any>): InstantiableInterface<ServiceFactory<any>>
+    fromFunction(factory: DefaultServiceFactory): InstantiableInterface<DefaultServiceFactory>
 }
 
 class TransientInstantiableFactory implements InstantiableFactoryInterface {
-    fromFunction(factory: ServiceFactory<any>): InstantiableInterface<ServiceFactory<any>> {
+    fromFunction(factory: DefaultServiceFactory): InstantiableInterface<DefaultServiceFactory> {
         return new Transient(factory)
     }
 }
 
 class SingletonInstantiableFactory implements InstantiableFactoryInterface {
-    fromFunction(factory: ServiceFactory<any>): InstantiableInterface<ServiceFactory<any>> {
+    fromFunction(factory: DefaultServiceFactory): InstantiableInterface<DefaultServiceFactory> {
         return new Singleton(factory)
     }
 }
@@ -157,6 +161,10 @@ class ContainerBuilder implements ContainerBuilderInterface {
     }
 
     fromFactory<T extends DefaultServiceFactory>(fn: T, { name, dependencies = [], lifeCycle = LifeCycle.Transient }: FromFactoryOptions): ContainerBuilderInterface {
+        if (this.classes.has(name)) {
+            throw new ServiceAlreadyRegisteredError(name)
+        }
+
         const factory = createInstantiableFactory(lifeCycle).fromFunction(fn)
 
         this.classes.set(name, { factory, dependencies })
@@ -368,4 +376,29 @@ it('should create service from constant', function () {
     const n = container.get('n')
 
     expect(n).toBe(78)
+})
+
+it('should not register already registered service', function () {
+    const builder = newBuilder()
+        .fromConstant(new DatabaseConnection(), { name: 'db' })
+
+    const throw1 = () => builder.fromConstant(new DatabaseConnection(), { name: 'db' })
+    const throw2 = () => builder.fromFactory(() => new DatabaseConnection(), { name: 'db' })
+    const throw3 = () => builder.fromClass(DatabaseConnection, { name: 'db' })
+
+    expect(throw1).toThrow(new ServiceAlreadyRegisteredError("db"))
+    expect(throw2).toThrow(new ServiceAlreadyRegisteredError("db"))
+    expect(throw3).toThrow(new ServiceAlreadyRegisteredError("db"))
+})
+
+describe('ServiceAlreadyRegisteredError', function () {
+    it('should create the error from a service name', function () {
+        const error = new ServiceAlreadyRegisteredError("userRepository")
+        expect(error.message).toBe('Service named "userRepository" was already registered.')
+    })
+
+    it('should create the error from a constructor', function () {
+        const error = new ServiceAlreadyRegisteredError(UserRepository)
+        expect(error.message).toBe('Service named "UserRepository" was already registered.')
+    })
 })
