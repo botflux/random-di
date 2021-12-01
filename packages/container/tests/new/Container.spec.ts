@@ -15,8 +15,17 @@ class RandomNumberService {
 
 class ContainerError extends Error {}
 class NoServiceFoundError extends ContainerError {
-    constructor(serviceName: ServiceNameOrConstructor) {
-        super(`There is no service matching the given name: "${serviceNameOrConstructorToString(serviceName)}"`)
+    constructor(serviceName: ServiceNameOrConstructor | ServiceNameOrConstructor[]) {
+        const normalizedServiceName = Array.isArray(serviceName)
+            ? serviceName
+                .map(serviceNameOrConstructorToString)
+                .map(name => `"${name}"`)
+                .join(", ")
+            : `"${serviceNameOrConstructorToString(serviceName)}"`
+
+        const multipleServiceNames = Array.isArray(serviceName) && serviceName.length > 1
+
+        super(`There is no service matching the given name${multipleServiceNames ? "s": ""}: ${normalizedServiceName}`)
     }
 }
 class ServiceAlreadyRegisteredError extends ContainerError {
@@ -163,6 +172,13 @@ class ContainerBuilder implements ContainerBuilderInterface {
     fromFactory<T extends DefaultServiceFactory>(fn: T, { name, dependencies = [], lifeCycle = LifeCycle.Transient }: FromFactoryOptions): ContainerBuilderInterface {
         if (this.classes.has(name)) {
             throw new ServiceAlreadyRegisteredError(name)
+        }
+
+        const missingDependencies = dependencies
+            ?.filter(dependency => !this.classes.has(serviceNameOrConstructorToString(dependency))) ?? []
+
+        if (missingDependencies.length > 0) {
+            throw new NoServiceFoundError(missingDependencies)
         }
 
         const factory = createInstantiableFactory(lifeCycle).fromFunction(fn)
@@ -400,5 +416,42 @@ describe('ServiceAlreadyRegisteredError', function () {
     it('should create the error from a constructor', function () {
         const error = new ServiceAlreadyRegisteredError(UserRepository)
         expect(error.message).toBe('Service named "UserRepository" was already registered.')
+    })
+})
+
+it('should not allow circular dependencies between services', function () {
+    const factory = () => "some_constant"
+
+    const throws = () => newBuilder()
+        .fromFactory(factory, { name: "constant1", dependencies: [ "constant2" ] })
+        .fromFactory(factory, { name: "constant2", dependencies: [ "constant1" ] })
+
+    expect(throws).toThrow(new NoServiceFoundError("constant2"))
+})
+
+describe('NoServiceFoundError', function () {
+    it('should create the error with one service name', function () {
+        const error = new NoServiceFoundError("db")
+        expect(error.message).toBe('There is no service matching the given name: "db"')
+    })
+
+    it('should create the error with one constructor', function () {
+        const error = new NoServiceFoundError(DatabaseConnection)
+        expect(error.message).toBe('There is no service matching the given name: "DatabaseConnection"')
+    })
+
+    it('should create the error from an array of service names with one item', function () {
+        const error = new NoServiceFoundError([ "db" ])
+        expect(error.message).toBe('There is no service matching the given name: "db"')
+    })
+
+    it('should create the error from an array of constructors with one item', function () {
+        const error = new NoServiceFoundError([ DatabaseConnection ])
+        expect(error.message).toBe('There is no service matching the given name: "DatabaseConnection"')
+    })
+
+    it('should create the error from an array of service names and constructors', function () {
+        const error = new NoServiceFoundError([ "db", DatabaseConnection ])
+        expect(error.message).toBe('There is no service matching the given names: "db", "DatabaseConnection"')
     })
 })
