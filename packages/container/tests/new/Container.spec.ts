@@ -35,6 +35,7 @@ type Class<T> = { new(...args: any[]): T }
 
 interface ContainerBuilderInterface {
     fromClass<T>(clazz: Class<T>, options?: FromClassOptions): ContainerBuilderInterface
+    fromFactory<T extends DefaultServiceFactory>(fn: T, options: FromFactoryOptions): ContainerBuilderInterface
 
     build(): ContainerInterface
 }
@@ -80,6 +81,11 @@ type FromClassOptions = {
     name?: ServiceName,
     lifeCycle?: LifeCycle
 }
+type FromFactoryOptions = {
+    name: ServiceName,
+    dependencies?: ServiceNameOrConstructor[],
+    lifeCycle?: LifeCycle
+}
 
 type DefaultServiceFactory = (...params: any[]) => any
 
@@ -89,6 +95,7 @@ interface InstantiableInterface<TServiceFactory extends DefaultServiceFactory> {
 
 interface InstantiableFactoryInterface {
     fromClass (clazz: Class<any>): InstantiableInterface<ServiceFactory<any>>
+    fromFactory (factory: ServiceFactory<any>): InstantiableInterface<ServiceFactory<any>>
 }
 
 class TransientInstantiableFactory implements InstantiableFactoryInterface {
@@ -97,6 +104,10 @@ class TransientInstantiableFactory implements InstantiableFactoryInterface {
             (...params: any[]) => new clazz(...params)
         )
     }
+
+    fromFactory(factory: ServiceFactory<any>): InstantiableInterface<ServiceFactory<any>> {
+        return new Transient(factory)
+    }
 }
 
 class SingletonInstantiableFactory implements InstantiableFactoryInterface {
@@ -104,6 +115,10 @@ class SingletonInstantiableFactory implements InstantiableFactoryInterface {
         return new Singleton<(...params: any[]) => any>(
             (...params: any[]) => new clazz(...params)
         )
+    }
+
+    fromFactory(factory: ServiceFactory<any>): InstantiableInterface<ServiceFactory<any>> {
+        return new Singleton(factory)
     }
 }
 
@@ -145,6 +160,13 @@ class ContainerBuilder implements ContainerBuilderInterface {
         const factory = createInstantiableFactory(lifeCycle).fromClass(clazz)
 
         this.classes.set(serviceName, { factory, dependencies })
+        return this
+    }
+
+    fromFactory<T extends DefaultServiceFactory>(fn: T, { name, dependencies = [], lifeCycle = LifeCycle.Transient }: FromFactoryOptions): ContainerBuilderInterface {
+        const factory = createInstantiableFactory(lifeCycle).fromFactory(fn)
+
+        this.classes.set(name, { factory, dependencies })
         return this
     }
 
@@ -249,6 +271,20 @@ it('should cache services instances for singleton services', function () {
     expect(randomNumberService1).toBe(randomNumberService2)
 })
 
+it('should not cache instances for transient services', function () {
+    const container = newBuilder()
+        .fromClass(RandomNumberService, { lifeCycle: LifeCycle.Transient })
+        .build()
+
+    const randomNumberService1 = container.get(RandomNumberService)
+    const randomNumberService2 = container.get(RandomNumberService)
+
+    expect(randomNumberService1).toBeInstanceOf(RandomNumberService)
+    expect(randomNumberService2).toBeInstanceOf(RandomNumberService)
+    expect(randomNumberService1.n).not.toBe(randomNumberService2.n)
+    expect(randomNumberService1).not.toBe(randomNumberService2)
+})
+
 it('should by default create transient service that are not cached', function () {
     const container = newBuilder()
         .fromClass(RandomNumberService)
@@ -261,4 +297,65 @@ it('should by default create transient service that are not cached', function ()
     expect(randomNumberService2).toBeInstanceOf(RandomNumberService)
     expect(randomNumberService1.n).not.toBe(randomNumberService2.n)
     expect(randomNumberService1).not.toBe(randomNumberService2)
+})
+
+it('should create service from factory function', function () {
+    const container = newBuilder()
+        .fromFactory(() => new RandomNumberService(), { name: 'randomNumberService' })
+        .build()
+
+    const randomNumberService = container.get('randomNumberService')
+
+    expect(randomNumberService).toBeInstanceOf(RandomNumberService)
+})
+
+it('should create service from factory with dependencies', function () {
+    const container = newBuilder()
+        .fromClass(DatabaseConnection)
+        .fromFactory((database: DatabaseConnection) => new UserRepository(database), { name: 'userRepository', dependencies: [ DatabaseConnection ] })
+        .build()
+
+    const userRepository = container.get<UserRepository>('userRepository')
+
+    expect(userRepository).toBeInstanceOf(UserRepository)
+    expect(userRepository.databaseConnection).toBeInstanceOf(DatabaseConnection)
+})
+
+it('should cache instance created from singleton factory', function () {
+    const container = newBuilder()
+        .fromFactory(() => new RandomNumberService(), { name: 'number', lifeCycle: LifeCycle.Singleton })
+        .build()
+
+    const randomNumber1 = container.get<RandomNumberService>('number')
+    const randomNumber2 = container.get<RandomNumberService>('number')
+
+    expect(randomNumber1).toBeInstanceOf(RandomNumberService)
+    expect(randomNumber2).toBeInstanceOf(RandomNumberService)
+    expect(randomNumber1.n).toBe(randomNumber2.n)
+})
+
+it('should not cache instance created from factory by default', function () {
+    const container = newBuilder()
+        .fromFactory(() => new RandomNumberService(), { name: 'number' })
+        .build()
+
+    const randomNumber1 = container.get<RandomNumberService>('number')
+    const randomNumber2 = container.get<RandomNumberService>('number')
+
+    expect(randomNumber1).toBeInstanceOf(RandomNumberService)
+    expect(randomNumber2).toBeInstanceOf(RandomNumberService)
+    expect(randomNumber1.n).not.toBe(randomNumber2.n)
+})
+
+it('should not cache instance created from transient factory', function () {
+    const container = newBuilder()
+        .fromFactory(() => new RandomNumberService(), { name: 'number', lifeCycle: LifeCycle.Transient })
+        .build()
+
+    const randomNumber1 = container.get<RandomNumberService>('number')
+    const randomNumber2 = container.get<RandomNumberService>('number')
+
+    expect(randomNumber1).toBeInstanceOf(RandomNumberService)
+    expect(randomNumber2).toBeInstanceOf(RandomNumberService)
+    expect(randomNumber1.n).not.toBe(randomNumber2.n)
 })
