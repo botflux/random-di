@@ -98,40 +98,18 @@ interface InstantiableInterface<TServiceFactory extends DefaultServiceFactory> {
 }
 
 interface InstantiableFactoryInterface {
-    fromClass (clazz: Class<any>): InstantiableInterface<ServiceFactory<any>>
-    fromFactory (factory: ServiceFactory<any>): InstantiableInterface<ServiceFactory<any>>
-    fromConstant (value: any): InstantiableInterface<ServiceFactory<any>>
+    fromFunction(factory: ServiceFactory<any>): InstantiableInterface<ServiceFactory<any>>
 }
 
 class TransientInstantiableFactory implements InstantiableFactoryInterface {
-    fromClass(clazz: Class<any>): InstantiableInterface<ServiceFactory<any>> {
-        return new Transient<(...params: any[]) => any>(
-            (...params: any[]) => new clazz(...params)
-        )
-    }
-
-    fromFactory(factory: ServiceFactory<any>): InstantiableInterface<ServiceFactory<any>> {
+    fromFunction(factory: ServiceFactory<any>): InstantiableInterface<ServiceFactory<any>> {
         return new Transient(factory)
-    }
-
-    fromConstant(value: any): InstantiableInterface<ServiceFactory<any>> {
-        return new Transient(() => value)
     }
 }
 
 class SingletonInstantiableFactory implements InstantiableFactoryInterface {
-    fromClass(clazz: Class<any>): InstantiableInterface<ServiceFactory<any>> {
-        return new Singleton<(...params: any[]) => any>(
-            (...params: any[]) => new clazz(...params)
-        )
-    }
-
-    fromFactory(factory: ServiceFactory<any>): InstantiableInterface<ServiceFactory<any>> {
+    fromFunction(factory: ServiceFactory<any>): InstantiableInterface<ServiceFactory<any>> {
         return new Singleton(factory)
-    }
-
-    fromConstant(value: any): InstantiableInterface<ServiceFactory<any>> {
-        throw new ContainerError('You must use TransientInstantiableFactory instead to create constant service.')
     }
 }
 
@@ -170,22 +148,26 @@ class ContainerBuilder implements ContainerBuilderInterface {
 
     fromClass<T>(clazz: Class<T>, { dependencies = [], name, lifeCycle = LifeCycle.Transient }: FromClassOptions = {}): ContainerBuilderInterface {
         const serviceName = name ?? clazz.name
-        const factory = createInstantiableFactory(lifeCycle).fromClass(clazz)
+        const fn = (...params: any[]) => new clazz(...params)
 
-        this.classes.set(serviceName, { factory, dependencies })
-        return this
+        return this.fromFactory(
+            fn,
+            { name: serviceName, lifeCycle, dependencies }
+        )
     }
 
     fromFactory<T extends DefaultServiceFactory>(fn: T, { name, dependencies = [], lifeCycle = LifeCycle.Transient }: FromFactoryOptions): ContainerBuilderInterface {
-        const factory = createInstantiableFactory(lifeCycle).fromFactory(fn)
+        const factory = createInstantiableFactory(lifeCycle).fromFunction(fn)
 
         this.classes.set(name, { factory, dependencies })
         return this
     }
 
     fromConstant<T>(value: T, { name }: FromConstantOptions): ContainerBuilderInterface {
-        this.classes.set(name, { factory: createInstantiableFactory(LifeCycle.Transient).fromConstant(value), dependencies: [] })
-        return this
+        return this.fromFactory(
+            () => value,
+            { name, lifeCycle: LifeCycle.Transient, dependencies: [] }
+        )
     }
 
     build(): ContainerInterface {
