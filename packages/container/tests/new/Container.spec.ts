@@ -33,6 +33,15 @@ class ServiceAlreadyRegisteredError extends ContainerError {
         super(`Service named "${serviceNameOrConstructorToString(alreadyRegisteredServiceName)}" was already registered.`)
     }
 }
+class CircularDependencyError extends ContainerError {
+    constructor(serviceWithCircularDependency: ServiceNameOrConstructor, serviceNameOrConstructors: ServiceNameOrConstructor[]) {
+        const circularPath = serviceNameOrConstructors
+            .map(serviceNameOrConstructorToString)
+            .map(name => `"${name}"`)
+            .join(" -> ")
+        super(`Service named "${serviceNameOrConstructorToString(serviceWithCircularDependency)}" has a circular dependency. Here is the circular path: ${circularPath}`)
+    }
+}
 
 function isConstructor (constructor: unknown): constructor is Class<any> {
     return constructor !== undefined && constructor !== null && typeof constructor === 'function'
@@ -50,6 +59,8 @@ interface ContainerBuilderInterface {
     fromClass<T>(clazz: Class<T>, options?: FromClassOptions): ContainerBuilderInterface
     fromFactory<T extends DefaultServiceFactory>(fn: T, options: FromFactoryOptions): ContainerBuilderInterface
     fromConstant<T>(value: T, options: FromConstantOptions): ContainerBuilderInterface
+
+    checkDependenciesValidity(): ContainerBuilderInterface
 
     build(): ContainerInterface
 }
@@ -154,9 +165,13 @@ function createInstantiableFactory (lifeCycle: LifeCycle): InstantiableFactoryIn
 }
 
 class ContainerBuilder implements ContainerBuilderInterface {
+    private readonly enableDeclarationDisorder: boolean
+
     constructor(
+        { enableDeclarationDisorder = false }: BuilderFactoryOptions,
         private readonly classes: Map<string, Service> = new Map()
     ) {
+        this.enableDeclarationDisorder = enableDeclarationDisorder
     }
 
     fromClass<T>(clazz: Class<T>, { dependencies = [], name, lifeCycle = LifeCycle.Transient }: FromClassOptions = {}): ContainerBuilderInterface {
@@ -177,7 +192,7 @@ class ContainerBuilder implements ContainerBuilderInterface {
         const missingDependencies = dependencies
             ?.filter(dependency => !this.classes.has(serviceNameOrConstructorToString(dependency))) ?? []
 
-        if (missingDependencies.length > 0) {
+        if (!this.enableDeclarationDisorder && missingDependencies.length > 0) {
             throw new NoServiceFoundError(missingDependencies)
         }
 
@@ -194,13 +209,60 @@ class ContainerBuilder implements ContainerBuilderInterface {
         )
     }
 
+    checkDependenciesValidity(): ContainerBuilderInterface {
+        for (const [ serviceName,  ] of this.classes) {
+            const [ hasCircularDependencies, circularDependencyPath ] = this.hasCircularDependency(serviceName)
+
+            if (hasCircularDependencies) {
+                throw new CircularDependencyError(serviceName, circularDependencyPath)
+            }
+        }
+
+        return this
+    }
+
     build(): ContainerInterface {
         return new Container(this.classes)
     }
+
+    private hasCircularDependency (serviceName: string): [boolean, string[]] {
+        let alreadyVisitedService: string[] = []
+
+        return [this.find(serviceName, name => {
+            const wasAlreadyVisited = alreadyVisitedService.includes(name)
+            alreadyVisitedService = [ ...alreadyVisitedService, name ]
+
+            return wasAlreadyVisited;
+        }), alreadyVisitedService]
+    }
+
+    private find(serviceName: string, fn: (serviceName: string) => boolean): boolean {
+        const service = this.classes.get(serviceName)
+
+        if (!service) return false
+
+        const found = fn(serviceName)
+
+        if(found) return found
+
+        for (const dependency of service.dependencies) {
+            const stringifiedName = serviceNameOrConstructorToString(dependency)
+
+            const found = this.find(stringifiedName, fn)
+
+            if (found) return found
+        }
+
+        return false
+    }
 }
 
-function newBuilder(): ContainerBuilderInterface {
-    return new ContainerBuilder()
+type BuilderFactoryOptions = {
+    enableDeclarationDisorder?: boolean
+}
+
+function newBuilder(options: BuilderFactoryOptions = {}): ContainerBuilderInterface {
+    return new ContainerBuilder(options)
 }
 
 describe('serviceNameOrConstructorNameToString', function () {
@@ -454,4 +516,24 @@ describe('NoServiceFoundError', function () {
         const error = new NoServiceFoundError([ "db", DatabaseConnection ])
         expect(error.message).toBe('There is no service matching the given names: "db", "DatabaseConnection"')
     })
+})
+
+it('should not allow circular dependencies between services by using a method', function () {
+    const builder = newBuilder({ enableDeclarationDisorder: true })
+        .fromClass(UserRepository, { dependencies: [ DatabaseConnection ] })
+        .fromClass(DatabaseConnection, { dependencies: [ UserRepository ] })
+
+    const throws = () => builder.checkDependenciesValidity()
+
+    expect(throws).toThrow(new CircularDependencyError(UserRepository, [ UserRepository, DatabaseConnection, UserRepository ]))
+})
+
+it('should allow non-circular dependencies between services by using a method', function () {
+    const builder = newBuilder({ enableDeclarationDisorder: true })
+        .fromClass(UserRepository, { dependencies: [ DatabaseConnection ] })
+        .fromClass(DatabaseConnection)
+
+    const throws = () => builder.checkDependenciesValidity()
+
+    expect(throws).not.toThrow(new CircularDependencyError(UserRepository, [ UserRepository, DatabaseConnection, UserRepository ]))
 })
