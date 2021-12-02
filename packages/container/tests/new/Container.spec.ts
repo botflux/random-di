@@ -52,6 +52,13 @@ class CannotRepairTransientError extends ContainerError {
         )
     }
 }
+class CannotRetrieveDestroyedServiceError extends ContainerError {
+    constructor(serviceNameOrConstructor: ServiceNameOrConstructor) {
+        super(
+            `The container has destroyed all of its services, so "${serviceNameOrConstructorToString(serviceNameOrConstructor)}" cannot be retrieved anymore.`
+        )
+    }
+}
 
 function isConstructor (constructor: unknown): constructor is Class<any> {
     return constructor !== undefined && constructor !== null && typeof constructor === 'function'
@@ -77,15 +84,22 @@ interface ContainerBuilderInterface {
 
 interface ContainerInterface {
     get<T>(serviceName: ServiceNameOrConstructor<T>): T
+    destroy(): void
 }
 
 class Container implements ContainerInterface {
+    private isDestroyed: boolean = false
+
     constructor(
         private readonly classes: Map<string, Service>
     ) {
     }
 
     get<T>(serviceNameOrConstructor: ServiceNameOrConstructor<T>): T {
+        if (this.isDestroyed) {
+            throw new CannotRetrieveDestroyedServiceError(serviceNameOrConstructor)
+        }
+
         const serviceName = serviceNameOrConstructorToString(serviceNameOrConstructor)
         const service = this.classes.get(serviceName)
 
@@ -98,6 +112,17 @@ class Container implements ContainerInterface {
         return factory.instantiate(
             ...dependencies.map(dependency => this.get(dependency))
         )
+    }
+
+    destroy() {
+        for (const [ , { factory } ] of this.classes) {
+            if (isDestroyable(factory)) {
+                factory.destroy()
+            }
+        }
+
+        this.classes.clear()
+        this.isDestroyed = true
     }
 }
 
@@ -132,6 +157,14 @@ type FromConstantOptions = {
 
 type DefaultServiceFactory = (...params: any[]) => any
 
+interface DestroyableInterface {
+    destroy (): void
+}
+
+function isDestroyable (instantiable: InstantiableInterface<any>): instantiable is DestroyableInterface & InstantiableInterface<any> {
+    return 'destroy' in instantiable
+}
+
 interface InstantiableInterface<TServiceFactory extends DefaultServiceFactory> {
     instantiate (...params: Parameters<TServiceFactory>): ReturnType<TServiceFactory>
 }
@@ -160,7 +193,7 @@ class Transient<TServiceFactory extends DefaultServiceFactory> implements Instan
     }
 }
 
-class Singleton<TServiceFactory extends DefaultServiceFactory> implements InstantiableInterface<TServiceFactory> {
+class Singleton<TServiceFactory extends DefaultServiceFactory> implements InstantiableInterface<TServiceFactory>, DestroyableInterface {
     private instance?: ReturnType<TServiceFactory>
 
     constructor(
@@ -176,6 +209,10 @@ class Singleton<TServiceFactory extends DefaultServiceFactory> implements Instan
         this.instance = this.repair?.(<ReturnType<TServiceFactory>> this.instance) ?? this.instance
 
         return this.instance as ReturnType<TServiceFactory>
+    }
+
+    destroy() {
+        delete this.instance
     }
 }
 
@@ -612,3 +649,29 @@ it('should not allow repair function for transient services', function () {
     expect(throws1).toThrow(new CannotRepairTransientError(DatabaseConnection))
     expect(throws2).toThrow(new CannotRepairTransientError('db'))
 })
+
+it('should destroy all the services', function () {
+    const container = newBuilder()
+        .fromClass(DatabaseConnection, { lifeCycle: LifeCycle.Singleton })
+        .fromClass(UserRepository, { dependencies: [ DatabaseConnection ], lifeCycle: LifeCycle.Singleton })
+        .build()
+
+    container.destroy()
+
+    const shouldThrow = () => container.get(UserRepository)
+
+    expect(shouldThrow).toThrow(new CannotRetrieveDestroyedServiceError(UserRepository))
+})
+
+describe('CannotRetrieveDestroyedServiceError', function () {
+    it('should create the error from a constructor', function () {
+        expect(new CannotRetrieveDestroyedServiceError(UserRepository).message)
+            .toBe(`The container has destroyed all of its services, so "UserRepository" cannot be retrieved anymore.`)
+    })
+
+    it('should create the error from a string', function () {
+        expect(new CannotRetrieveDestroyedServiceError("db").message)
+            .toBe(`The container has destroyed all of its services, so "db" cannot be retrieved anymore.`)
+    })
+})
+
