@@ -14,7 +14,14 @@ class RandomNumberService {
     ) {}
 }
 
+/**
+ * Base error for the library.
+ */
 class ContainerError extends Error {}
+
+/**
+ * Thrown when a service was not found.
+ */
 class NoServiceFoundError extends ContainerError {
     constructor(serviceName: ServiceNameOrConstructor | ServiceNameOrConstructor[]) {
         const normalizedServiceName = Array.isArray(serviceName)
@@ -29,11 +36,19 @@ class NoServiceFoundError extends ContainerError {
         super(`There is no service matching the given name${multipleServiceNames ? "s": ""}: ${normalizedServiceName}`)
     }
 }
+
+/**
+ * Thrown when a service is registered twice.
+ */
 class ServiceAlreadyRegisteredError extends ContainerError {
     constructor(alreadyRegisteredServiceName: ServiceNameOrConstructor) {
         super(`Service named "${serviceNameOrConstructorToString(alreadyRegisteredServiceName)}" was already registered.`)
     }
 }
+
+/**
+ * Thrown when there is a circular dependencies between services.
+ */
 class CircularDependencyError extends ContainerError {
     constructor(serviceWithCircularDependency: ServiceNameOrConstructor, serviceNameOrConstructors: ServiceNameOrConstructor[]) {
         const circularPath = serviceNameOrConstructors
@@ -43,6 +58,10 @@ class CircularDependencyError extends ContainerError {
         super(`Service named "${serviceNameOrConstructorToString(serviceWithCircularDependency)}" has a circular dependency. Here is the circular path: ${circularPath}`)
     }
 }
+
+/**
+ * Thrown when a repair function is passed to a transient service.
+ */
 class CannotRepairTransientError extends ContainerError {
     constructor(serviceNameOrConstructor: ServiceNameOrConstructor) {
         super(
@@ -51,6 +70,10 @@ class CannotRepairTransientError extends ContainerError {
         )
     }
 }
+
+/**
+ * Thrown when services are retrieved after the container was destroyed.
+ */
 class CannotRetrieveDestroyedServiceError extends ContainerError {
     constructor(serviceNameOrConstructor: ServiceNameOrConstructor) {
         super(
@@ -58,6 +81,10 @@ class CannotRetrieveDestroyedServiceError extends ContainerError {
         )
     }
 }
+
+/**
+ * Thrown when a destroy function is passed to a transient service.
+ */
 class CannotDestroyTransientError extends ContainerError {
     constructor(serviceNameOrConstructor: ServiceNameOrConstructor) {
         super(
@@ -67,25 +94,69 @@ class CannotDestroyTransientError extends ContainerError {
     }
 }
 
+/**
+ * Returns true if the passed variable is a constructor; otherwise false.
+ *
+ * @param constructor
+ */
 function isConstructor (constructor: unknown): constructor is Class<any> {
     return constructor !== undefined && constructor !== null && typeof constructor === 'function'
         // @ts-ignore
         && 'name' in constructor
 }
 
+/**
+ * Stringify service names.
+ *
+ * @param serviceNameOrConstructor
+ */
 function serviceNameOrConstructorToString (serviceNameOrConstructor: ServiceNameOrConstructor): string {
     return isConstructor(serviceNameOrConstructor) ? serviceNameOrConstructor.name : serviceNameOrConstructor
 }
 
 type Class<T> = { new(...args: any[]): T }
 
+/**
+ * Helps creating new container.
+ */
 interface ContainerBuilderInterface {
+    /**
+     * Add a new service from a class constructor.
+     *
+     * @param clazz
+     * @param options
+     */
     fromClass<T>(clazz: Class<T>, options?: FromClassOptions<T>): ContainerBuilderInterface
+
+    /**
+     * Add a new service from a factory function.
+     *
+     * @param fn
+     * @param options
+     */
     fromFactory<T extends DefaultServiceFactory>(fn: T, options: FromFactoryOptions): ContainerBuilderInterface
+
+    /**
+     * Add a new service from a constant.
+     *
+     * @param value
+     * @param options
+     */
     fromConstant<T>(value: T, options: FromConstantOptions): ContainerBuilderInterface
 
+    /**
+     * Throw if there are circular dependencies between services.
+     * If there are circular dependencies, a {@ref CircularDependencyError} will be thrown.
+     *
+     * By default, circular dependencies are not possible because services have to be registered in order.
+     * You can use the `{ enableDeclarationDisorder: true }` parameter when creating a new builder
+     * in order to allow declaration disorder.
+     */
     checkDependenciesValidity(): ContainerBuilderInterface
 
+    /**
+     * Create a container from the current container builder.
+     */
     build(): ContainerInterface
 }
 
