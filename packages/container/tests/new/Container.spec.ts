@@ -1,4 +1,3 @@
-
 class DatabaseConnection {
     public isConnected = true
 }
@@ -56,6 +55,14 @@ class CannotRetrieveDestroyedServiceError extends ContainerError {
     constructor(serviceNameOrConstructor: ServiceNameOrConstructor) {
         super(
             `The container has destroyed all of its services, so "${serviceNameOrConstructorToString(serviceNameOrConstructor)}" cannot be retrieved anymore.`
+        )
+    }
+}
+class CannotDestroyTransientError extends ContainerError {
+    constructor(serviceNameOrConstructor: ServiceNameOrConstructor) {
+        super(
+            `Service named "${serviceNameOrConstructorToString(serviceNameOrConstructor)}" was registered as a "LifeCycle.Transient" with a destroy callback. `
+            + `Only "LifeCycle.Singleton" services can be destroyed using a destroy callback.`
         )
     }
 }
@@ -137,19 +144,22 @@ type Service = {
 enum LifeCycle { Singleton = "Singleton", Transient = "Transient" }
 
 type RepairService <T> = (service: T) => T
+type DestroyService <T> = (service: T) => void
 
 type FromClassOptions<T = any> = {
     dependencies?: ServiceNameOrConstructor[],
     name?: ServiceName,
     lifeCycle?: LifeCycle,
-    repair?: RepairService<T>
+    repair?: RepairService<T>,
+    destroy?: DestroyService<T>
 }
 
 type FromFactoryOptions<T = any> = {
     name: ServiceName,
     dependencies?: ServiceNameOrConstructor[],
     lifeCycle?: LifeCycle
-    repair?: RepairService<T>
+    repair?: RepairService<T>,
+    destroy?: DestroyService<T>
 }
 type FromConstantOptions = {
     name: ServiceName
@@ -170,7 +180,7 @@ interface InstantiableInterface<TServiceFactory extends DefaultServiceFactory> {
 }
 
 interface InstantiableFactoryInterface {
-    fromFunction(factory: DefaultServiceFactory, repair?: RepairService<any>): InstantiableInterface<DefaultServiceFactory>
+    fromFunction(factory: DefaultServiceFactory, repair?: RepairService<any>, destroy?: DestroyService<any>): InstantiableInterface<DefaultServiceFactory>
 }
 
 class TransientInstantiableFactory implements InstantiableFactoryInterface {
@@ -180,8 +190,8 @@ class TransientInstantiableFactory implements InstantiableFactoryInterface {
 }
 
 class SingletonInstantiableFactory implements InstantiableFactoryInterface {
-    fromFunction(factory: DefaultServiceFactory, repair?: RepairService<any>): InstantiableInterface<DefaultServiceFactory> {
-        return new Singleton(factory, repair)
+    fromFunction(factory: DefaultServiceFactory, repair?: RepairService<any>, destroy?: DestroyService<any>): InstantiableInterface<DefaultServiceFactory> {
+        return new Singleton(factory, repair, destroy)
     }
 }
 
@@ -198,7 +208,8 @@ class Singleton<TServiceFactory extends DefaultServiceFactory> implements Instan
 
     constructor(
         private readonly factory: TServiceFactory,
-        private readonly repair?: RepairService<ReturnType<TServiceFactory>>
+        private readonly repair?: RepairService<ReturnType<TServiceFactory>>,
+        private readonly destroyFn?: DestroyService<ReturnType<TServiceFactory>>
     ) {}
 
     instantiate(...params: Parameters<TServiceFactory>): ReturnType<TServiceFactory> {
@@ -212,6 +223,10 @@ class Singleton<TServiceFactory extends DefaultServiceFactory> implements Instan
     }
 
     destroy() {
+        if (this.destroyFn && this.instance) {
+            this.destroyFn(this.instance)
+        }
+
         delete this.instance
     }
 }
@@ -232,23 +247,27 @@ class ContainerBuilder implements ContainerBuilderInterface {
         this.enableDeclarationDisorder = enableDeclarationDisorder
     }
 
-    fromClass<T>(clazz: Class<T>, { dependencies = [], name, lifeCycle = LifeCycle.Transient, repair }: FromClassOptions<T> = {}): ContainerBuilderInterface {
+    fromClass<T>(clazz: Class<T>, { dependencies = [], name, lifeCycle = LifeCycle.Transient, repair, destroy }: FromClassOptions<T> = {}): ContainerBuilderInterface {
         const serviceName = name ?? clazz.name
         const fn = (...params: any[]) => new clazz(...params)
 
         return this.fromFactory(
             fn,
-            { name: serviceName, lifeCycle, dependencies, repair }
+            { name: serviceName, lifeCycle, dependencies, repair, destroy }
         )
     }
 
-    fromFactory<T extends DefaultServiceFactory>(fn: T, { name, dependencies = [], lifeCycle = LifeCycle.Transient, repair }: FromFactoryOptions): ContainerBuilderInterface {
+    fromFactory<T extends DefaultServiceFactory>(fn: T, { name, dependencies = [], lifeCycle = LifeCycle.Transient, repair, destroy }: FromFactoryOptions): ContainerBuilderInterface {
         if (this.classes.has(name)) {
             throw new ServiceAlreadyRegisteredError(name)
         }
 
         if (lifeCycle === LifeCycle.Transient && !!repair) {
             throw new CannotRepairTransientError(name)
+        }
+
+        if (lifeCycle === LifeCycle.Transient && !!destroy) {
+            throw new CannotDestroyTransientError(name)
         }
 
         const missingDependencies = dependencies
@@ -258,7 +277,7 @@ class ContainerBuilder implements ContainerBuilderInterface {
             throw new NoServiceFoundError(missingDependencies)
         }
 
-        const factory = createInstantiableFactory(lifeCycle).fromFunction(fn, repair)
+        const factory = createInstantiableFactory(lifeCycle).fromFunction(fn, repair, destroy)
 
         this.classes.set(name, { factory, dependencies })
         return this
@@ -675,3 +694,66 @@ describe('CannotRetrieveDestroyedServiceError', function () {
     })
 })
 
+it('should destroy services using a destroy callback', function () {
+    const destroyFn = jest.fn()
+
+    const container = newBuilder()
+        .fromFactory(() => new DatabaseConnection, {
+            lifeCycle: LifeCycle.Singleton,
+            destroy: destroyFn,
+            name: DatabaseConnection.name
+        })
+        .fromClass(UserRepository)
+        .build()
+
+    const database = container.get(DatabaseConnection)
+
+    container.destroy()
+
+    expect(destroyFn).toBeCalledTimes(1)
+    expect(destroyFn).toHaveBeenCalledWith(database)
+})
+
+it('should not call the destroy callback if the service was not instantiated', function () {
+    const destroyFn = jest.fn()
+
+    const container = newBuilder()
+        .fromFactory(() => new DatabaseConnection, {
+            lifeCycle: LifeCycle.Singleton,
+            destroy: destroyFn,
+            name: DatabaseConnection.name
+        })
+        .fromClass(UserRepository)
+        .build()
+
+    container.destroy()
+
+    expect(destroyFn).toBeCalledTimes(0)
+})
+
+it('should destroy class instances using a destroy callback', function () {
+    const destroyFn = jest.fn()
+
+    const container = newBuilder()
+        .fromClass(DatabaseConnection, {
+            lifeCycle: LifeCycle.Singleton,
+            destroy: destroyFn
+        })
+        .fromClass(UserRepository)
+        .build()
+
+    const database = container.get(DatabaseConnection)
+
+    container.destroy()
+
+    expect(destroyFn).toBeCalledTimes(1)
+    expect(destroyFn).toHaveBeenCalledWith(database)
+})
+
+it('should not allow transient service to have destroy callback', function () {
+    const throws1 = () => newBuilder().fromFactory(() => new DatabaseConnection(), { destroy: service => {}, name: 'db' })
+    const throws2 = () => newBuilder().fromClass(DatabaseConnection, { destroy: service => {} })
+
+    expect(throws1).toThrow(new CannotDestroyTransientError('db'))
+    expect(throws2).toThrow(new CannotDestroyTransientError(DatabaseConnection))
+})
