@@ -1,5 +1,7 @@
 
-class DatabaseConnection {}
+class DatabaseConnection {
+    public isConnected = true
+}
 class UserRepository {
     constructor(
         public readonly databaseConnection: DatabaseConnection
@@ -56,7 +58,7 @@ function serviceNameOrConstructorToString (serviceNameOrConstructor: ServiceName
 type Class<T> = { new(...args: any[]): T }
 
 interface ContainerBuilderInterface {
-    fromClass<T>(clazz: Class<T>, options?: FromClassOptions): ContainerBuilderInterface
+    fromClass<T>(clazz: Class<T>, options?: FromClassOptions<T>): ContainerBuilderInterface
     fromFactory<T extends DefaultServiceFactory>(fn: T, options: FromFactoryOptions): ContainerBuilderInterface
     fromConstant<T>(value: T, options: FromConstantOptions): ContainerBuilderInterface
 
@@ -101,15 +103,20 @@ type Service = {
 
 enum LifeCycle { Singleton = "Singleton", Transient = "Transient" }
 
-type FromClassOptions = {
+type RepairService <T> = (service: T) => T
+
+type FromClassOptions<T = any> = {
     dependencies?: ServiceNameOrConstructor[],
     name?: ServiceName,
-    lifeCycle?: LifeCycle
+    lifeCycle?: LifeCycle,
+    repair?: RepairService<T>
 }
-type FromFactoryOptions = {
+
+type FromFactoryOptions<T = any> = {
     name: ServiceName,
     dependencies?: ServiceNameOrConstructor[],
     lifeCycle?: LifeCycle
+    repair?: RepairService<T>
 }
 type FromConstantOptions = {
     name: ServiceName
@@ -122,18 +129,18 @@ interface InstantiableInterface<TServiceFactory extends DefaultServiceFactory> {
 }
 
 interface InstantiableFactoryInterface {
-    fromFunction(factory: DefaultServiceFactory): InstantiableInterface<DefaultServiceFactory>
+    fromFunction(factory: DefaultServiceFactory, repair?: RepairService<any>): InstantiableInterface<DefaultServiceFactory>
 }
 
 class TransientInstantiableFactory implements InstantiableFactoryInterface {
-    fromFunction(factory: DefaultServiceFactory): InstantiableInterface<DefaultServiceFactory> {
+    fromFunction(factory: DefaultServiceFactory, repair?: RepairService<any>): InstantiableInterface<DefaultServiceFactory> {
         return new Transient(factory)
     }
 }
 
 class SingletonInstantiableFactory implements InstantiableFactoryInterface {
-    fromFunction(factory: DefaultServiceFactory): InstantiableInterface<DefaultServiceFactory> {
-        return new Singleton(factory)
+    fromFunction(factory: DefaultServiceFactory, repair?: RepairService<any>): InstantiableInterface<DefaultServiceFactory> {
+        return new Singleton(factory, repair)
     }
 }
 
@@ -148,11 +155,17 @@ class Transient<TServiceFactory extends DefaultServiceFactory> implements Instan
 class Singleton<TServiceFactory extends DefaultServiceFactory> implements InstantiableInterface<TServiceFactory> {
     private instance?: ReturnType<TServiceFactory>
 
-    constructor(private readonly factory: TServiceFactory) {}
+    constructor(
+        private readonly factory: TServiceFactory,
+        private readonly repair?: RepairService<ReturnType<TServiceFactory>>
+    ) {}
 
     instantiate(...params: Parameters<TServiceFactory>): ReturnType<TServiceFactory> {
         if (!this.instance)
             this.instance = this.factory(...params)
+
+
+        this.instance = this.repair?.(<ReturnType<TServiceFactory>> this.instance) ?? this.instance
 
         return this.instance as ReturnType<TServiceFactory>
     }
@@ -174,17 +187,17 @@ class ContainerBuilder implements ContainerBuilderInterface {
         this.enableDeclarationDisorder = enableDeclarationDisorder
     }
 
-    fromClass<T>(clazz: Class<T>, { dependencies = [], name, lifeCycle = LifeCycle.Transient }: FromClassOptions = {}): ContainerBuilderInterface {
+    fromClass<T>(clazz: Class<T>, { dependencies = [], name, lifeCycle = LifeCycle.Transient, repair }: FromClassOptions<T> = {}): ContainerBuilderInterface {
         const serviceName = name ?? clazz.name
         const fn = (...params: any[]) => new clazz(...params)
 
         return this.fromFactory(
             fn,
-            { name: serviceName, lifeCycle, dependencies }
+            { name: serviceName, lifeCycle, dependencies, repair }
         )
     }
 
-    fromFactory<T extends DefaultServiceFactory>(fn: T, { name, dependencies = [], lifeCycle = LifeCycle.Transient }: FromFactoryOptions): ContainerBuilderInterface {
+    fromFactory<T extends DefaultServiceFactory>(fn: T, { name, dependencies = [], lifeCycle = LifeCycle.Transient, repair }: FromFactoryOptions): ContainerBuilderInterface {
         if (this.classes.has(name)) {
             throw new ServiceAlreadyRegisteredError(name)
         }
@@ -196,7 +209,7 @@ class ContainerBuilder implements ContainerBuilderInterface {
             throw new NoServiceFoundError(missingDependencies)
         }
 
-        const factory = createInstantiableFactory(lifeCycle).fromFunction(fn)
+        const factory = createInstantiableFactory(lifeCycle).fromFunction(fn, repair)
 
         this.classes.set(name, { factory, dependencies })
         return this
@@ -536,4 +549,43 @@ it('should allow non-circular dependencies between services by using a method', 
     const throws = () => builder.checkDependenciesValidity()
 
     expect(throws).not.toThrow(new CircularDependencyError(UserRepository, [ UserRepository, DatabaseConnection, UserRepository ]))
+})
+
+it('should repair instances if broken', function () {
+    const container = newBuilder()
+        .fromFactory(() => new DatabaseConnection(), {
+            name: 'database',
+            repair: database => {
+                database.isConnected = true
+                return database
+            },
+            lifeCycle: LifeCycle.Singleton
+        })
+        .build()
+
+    const database1 = container.get<DatabaseConnection>('database')
+    database1.isConnected = false
+    const database2 = container.get<DatabaseConnection>('database')
+
+    expect(database1.isConnected).toBe(true)
+    expect(database2.isConnected).toBe(true)
+})
+
+it('should repair class instances if broken', function () {
+    const container = newBuilder()
+        .fromClass(DatabaseConnection, {
+            repair: service => {
+                service.isConnected = true
+                return service
+            },
+            lifeCycle: LifeCycle.Singleton
+        })
+        .build()
+
+    const database1 = container.get(DatabaseConnection)
+    database1.isConnected = false
+    const database2 = container.get(DatabaseConnection)
+
+    expect(database1.isConnected).toBe(true)
+    expect(database2.isConnected).toBe(true)
 })
