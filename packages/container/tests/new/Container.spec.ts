@@ -44,6 +44,14 @@ class CircularDependencyError extends ContainerError {
         super(`Service named "${serviceNameOrConstructorToString(serviceWithCircularDependency)}" has a circular dependency. Here is the circular path: ${circularPath}`)
     }
 }
+class CannotRepairTransientError extends ContainerError {
+    constructor(serviceNameOrConstructor: ServiceNameOrConstructor) {
+        super(
+            `The service named "${serviceNameOrConstructorToString(serviceNameOrConstructor)}" is declared as a "LifeCycle.Transient" service with a repair function. `
+            + `Only "LifeCycle.Singleton" services can be repaired.`
+        )
+    }
+}
 
 function isConstructor (constructor: unknown): constructor is Class<any> {
     return constructor !== undefined && constructor !== null && typeof constructor === 'function'
@@ -133,7 +141,7 @@ interface InstantiableFactoryInterface {
 }
 
 class TransientInstantiableFactory implements InstantiableFactoryInterface {
-    fromFunction(factory: DefaultServiceFactory, repair?: RepairService<any>): InstantiableInterface<DefaultServiceFactory> {
+    fromFunction(factory: DefaultServiceFactory): InstantiableInterface<DefaultServiceFactory> {
         return new Transient(factory)
     }
 }
@@ -200,6 +208,10 @@ class ContainerBuilder implements ContainerBuilderInterface {
     fromFactory<T extends DefaultServiceFactory>(fn: T, { name, dependencies = [], lifeCycle = LifeCycle.Transient, repair }: FromFactoryOptions): ContainerBuilderInterface {
         if (this.classes.has(name)) {
             throw new ServiceAlreadyRegisteredError(name)
+        }
+
+        if (lifeCycle === LifeCycle.Transient && !!repair) {
+            throw new CannotRepairTransientError(name)
         }
 
         const missingDependencies = dependencies
@@ -588,4 +600,15 @@ it('should repair class instances if broken', function () {
 
     expect(database1.isConnected).toBe(true)
     expect(database2.isConnected).toBe(true)
+})
+
+it('should not allow repair function for transient services', function () {
+    const throws1 = () => newBuilder()
+        .fromClass(DatabaseConnection, { repair: service => service })
+
+    const throws2 = () => newBuilder()
+        .fromFactory(() => new DatabaseConnection(), { repair: service => service, name: 'db' })
+
+    expect(throws1).toThrow(new CannotRepairTransientError(DatabaseConnection))
+    expect(throws2).toThrow(new CannotRepairTransientError('db'))
 })
