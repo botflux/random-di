@@ -134,7 +134,7 @@ interface ContainerBuilderInterface {
      * @param fn
      * @param options
      */
-    fromFactory<T extends DefaultServiceFactory>(fn: T, options: FromFactoryOptions): ContainerBuilderInterface
+    fromFactory<T extends DefaultServiceFactory>(fn: T, options: FromFactoryOptions<ReturnType<T>>): ContainerBuilderInterface
 
     /**
      * Add a new service from a constant.
@@ -214,7 +214,7 @@ type Service = {
 
 enum LifeCycle { Singleton = "Singleton", Transient = "Transient" }
 
-type RepairService <T> = (service: T) => T
+type RepairService <T, Dependencies extends any[] = any[]> = (service: T, ...dependencies: Dependencies) => T
 type DestroyService <T> = (service: T) => void
 
 type FromClassOptions<T = any> = {
@@ -288,7 +288,7 @@ class Singleton<TServiceFactory extends DefaultServiceFactory> implements Instan
             this.instance = this.factory(...params)
 
 
-        this.instance = this.repair?.(<ReturnType<TServiceFactory>> this.instance) ?? this.instance
+        this.instance = this.repair?.(<ReturnType<TServiceFactory>> this.instance, ...params) ?? this.instance
 
         return this.instance as ReturnType<TServiceFactory>
     }
@@ -827,4 +827,37 @@ it('should not allow transient service to have destroy callback', function () {
 
     expect(throws1).toThrow(new CannotDestroyTransientError('db'))
     expect(throws2).toThrow(new CannotDestroyTransientError(DatabaseConnection))
+})
+
+it('should repair services that depends on repaired services', function () {
+    const container = newBuilder()
+        .fromFactory(() => new DatabaseConnection(), {
+            name: "db",
+            lifeCycle: LifeCycle.Singleton,
+            repair: service => {
+                service.isConnected = true
+                return service
+            }
+        })
+        .fromFactory((db: DatabaseConnection) => new UserRepository(db), {
+            name: "userRepository",
+            lifeCycle: LifeCycle.Singleton,
+            repair: (userRepository: UserRepository, database: DatabaseConnection) => new UserRepository(database),
+            dependencies: [ "db" ]
+        })
+        .build()
+
+    const database1 = container.get<DatabaseConnection>("db")
+    const userRepository1 = container.get<UserRepository>("userRepository")
+    database1.isConnected = false
+    const database2 = container.get<DatabaseConnection>("db")
+    const userRepository2 = container.get<UserRepository>("userRepository")
+
+    expect(database1).toBeInstanceOf(DatabaseConnection)
+    expect(database2).toBeInstanceOf(DatabaseConnection)
+    expect(userRepository1).toBeInstanceOf(UserRepository)
+    expect(userRepository2).toBeInstanceOf(UserRepository)
+    expect(userRepository1).not.toBe(userRepository2)
+    expect(database1).toBe(database2)
+    expect(userRepository2.databaseConnection).toBeInstanceOf(DatabaseConnection)
 })
