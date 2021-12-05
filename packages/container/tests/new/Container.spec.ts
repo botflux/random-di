@@ -883,7 +883,7 @@ it('should repair services that depends on repaired services', function () {
     expect(userRepository2.databaseConnection).toBeInstanceOf(DatabaseConnection)
 })
 
-it('should allow async destroy function', function () {
+it('should allow async destroy function', async function () {
     const destroyFn = jest.fn(async service => service.isConnected = false)
 
     const container = newBuilder()
@@ -894,7 +894,7 @@ it('should allow async destroy function', function () {
         .build()
 
     container.get(DatabaseConnection)
-    container.destroy()
+    await container.destroy()
 
     expect(destroyFn).toBeCalledTimes(1)
 })
