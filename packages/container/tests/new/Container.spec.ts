@@ -1,3 +1,5 @@
+import {isSyncPromise, SyncPromise, unwrapIfSyncPromise} from '../../src/v1/SyncPromise'
+
 class DatabaseConnection {
     public isConnected = true
 }
@@ -94,6 +96,12 @@ class CannotDestroyTransientError extends ContainerError {
     }
 }
 
+type SyncOrAsync<T> = T | Promise<T>
+
+type DefaultFunction = (...params: any[]) => any
+type AsyncOrSyncFunction<TFunction extends DefaultFunction> =
+    TFunction | ((...params: Parameters<TFunction>) => Promise<ReturnType<TFunction>>)
+
 /**
  * Returns true if the passed variable is a constructor; otherwise false.
  *
@@ -162,7 +170,7 @@ interface ContainerBuilderInterface {
 
 interface ContainerInterface {
     get<T>(serviceName: ServiceNameOrConstructor<T>): T
-    destroy(): void
+    destroy(): Promise<void>
 }
 
 class Container implements ContainerInterface {
@@ -193,14 +201,20 @@ class Container implements ContainerInterface {
     }
 
     destroy() {
+        let destroyResult: Array<Promise<void> | void> = []
+
         for (const [ , { factory } ] of this.classes) {
             if (isDestroyable(factory)) {
-                factory.destroy()
+                destroyResult = [ ...destroyResult, factory.destroy() ]
             }
         }
 
         this.classes.clear()
         this.isDestroyed = true
+
+        return Promise.all(
+            destroyResult.filter(maybePromise => maybePromise instanceof Promise)
+        ) as unknown as Promise<void>
     }
 }
 
@@ -215,7 +229,7 @@ type Service = {
 enum LifeCycle { Singleton = "Singleton", Transient = "Transient" }
 
 type RepairService <T, Dependencies extends any[] = any[]> = (service: T, ...dependencies: Dependencies) => T
-type DestroyService <T> = (service: T) => void
+type DestroyService <T> = AsyncOrSyncFunction<(service: T) => void>
 
 type FromClassOptions<T = any> = {
     dependencies?: ServiceNameOrConstructor[],
@@ -239,7 +253,7 @@ type FromConstantOptions = {
 type DefaultServiceFactory = (...params: any[]) => any
 
 interface DestroyableInterface {
-    destroy (): void
+    destroy (): SyncOrAsync<void>
 }
 
 function isDestroyable (instantiable: InstantiableInterface<any>): instantiable is DestroyableInterface & InstantiableInterface<any> {
@@ -293,12 +307,19 @@ class Singleton<TServiceFactory extends DefaultServiceFactory> implements Instan
         return this.instance as ReturnType<TServiceFactory>
     }
 
-    destroy() {
+    destroy(): SyncOrAsync<void> {
         if (this.destroyFn && this.instance) {
-            this.destroyFn(this.instance)
-        }
+            const maybePromise = this.destroyFn(this.instance)
+            const syncOrAsync = SyncPromise.fromSyncOrAsync(maybePromise)
 
-        delete this.instance
+            const deletedInstancePromise = syncOrAsync.then(
+                () => {
+                    delete this.instance
+                }
+            )
+
+            return unwrapIfSyncPromise(deletedInstancePromise)
+        }
     }
 }
 
@@ -861,3 +882,38 @@ it('should repair services that depends on repaired services', function () {
     expect(database1).toBe(database2)
     expect(userRepository2.databaseConnection).toBeInstanceOf(DatabaseConnection)
 })
+
+it('should allow async destroy function', function () {
+    const destroyFn = jest.fn(async service => service.isConnected = false)
+
+    const container = newBuilder()
+        .fromClass(DatabaseConnection, {
+            lifeCycle: LifeCycle.Singleton,
+            destroy: destroyFn
+        })
+        .build()
+
+    container.get(DatabaseConnection)
+    container.destroy()
+
+    expect(destroyFn).toBeCalledTimes(1)
+})
+
+it('should catch rejection when passing async destroy function', function () {
+    const destroyFn = jest.fn(service => Promise.reject(new Error("Went wrong")))
+
+    const container = newBuilder()
+        .fromClass(DatabaseConnection, {
+            lifeCycle: LifeCycle.Singleton,
+            destroy: destroyFn
+        })
+        .build()
+
+    container.get(DatabaseConnection)
+    const rejection = container.destroy()
+
+    expect(destroyFn).toBeCalledTimes(1)
+    expect(rejection).rejects.toThrow(new Error("Went wrong"))
+})
+
+

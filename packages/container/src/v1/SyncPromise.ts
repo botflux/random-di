@@ -59,6 +59,14 @@ export class SyncPromise<T> implements PromiseLike<T> {
             ? Promise.all(params.map(promise => promise instanceof SyncPromise ? promise.unwrap() : promise))
             : new SyncPromise(params.map(param => param instanceof SyncPromise ? param.unwrap() : param))
     }
+
+    static fromSyncOrAsync<T> (value: T): Promise<T> | SyncPromise<T> {
+        if (value instanceof Promise) {
+            return value
+        } else {
+            return SyncPromise.from(value)
+        }
+    }
 }
 
 /**
@@ -68,3 +76,6 @@ export class SyncPromise<T> implements PromiseLike<T> {
  */
 export const isSyncPromise = <T>(value: PromiseLike<T>): value is SyncPromise<T> =>
     value instanceof SyncPromise
+
+export const unwrapIfSyncPromise = <T> (value: PromiseLike<T> | Promise<T>): T | Promise<T> =>
+    value instanceof SyncPromise ? value.unwrap() : value
