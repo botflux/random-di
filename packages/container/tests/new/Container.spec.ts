@@ -916,4 +916,37 @@ it('should catch rejection when passing async destroy function', function () {
     expect(rejection).rejects.toThrow(new Error("Went wrong"))
 })
 
+it('should allow async destroy function when using factory function', async function () {
+    const destroyFn = jest.fn(async (service) => service.isConnected = false)
 
+    const container = newBuilder()
+        .fromFactory(() => new DatabaseConnection(), {
+            name: 'db',
+            lifeCycle: LifeCycle.Singleton,
+            destroy: destroyFn
+        })
+        .build()
+
+    container.get<DatabaseConnection>('db')
+    await container.destroy()
+
+    expect(destroyFn).toBeCalledTimes(1)
+})
+
+it('should catch rejection when passing async destroy function when using factory function', function () {
+    const destroyFn = jest.fn(() => Promise.reject(new Error("Something went wrong")))
+
+    const container = newBuilder()
+        .fromFactory(() => new DatabaseConnection(), {
+            name: 'db',
+            lifeCycle: LifeCycle.Singleton,
+            destroy: destroyFn
+        })
+        .build()
+
+    container.get('db')
+    const reject = container.destroy()
+
+    expect(destroyFn).toBeCalledTimes(1)
+    expect(reject).rejects.toThrow(new Error("Something went wrong"))
+})
